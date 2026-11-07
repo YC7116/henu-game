@@ -1,4 +1,4 @@
-import type { Direction, PlayerState, Prop, Rect, RoomConfig, Vec } from './types'
+import type { Direction, PlayerState, Prop, Rect, RoomConfig, RoomEntrance, Vec } from './types'
 
 export const PLAYER_RADIUS = 7
 export const MOVE_SPEED = 138
@@ -17,8 +17,15 @@ export function maxHeight(cfg: RoomConfig): number {
   return cfg.steps ? Math.max(...cfg.steps.map(band => band.z)) : 0
 }
 
-export function playerStart(cfg: RoomConfig): PlayerState {
-  return { ...cfg.spawn, direction: 'up', distance: 0, moving: false, z: groundHeight(cfg.spawn.y, cfg) }
+export function playerStart(cfg: RoomConfig, entrance?: RoomEntrance): PlayerState {
+  const entryProp = entrance === 'stairs'
+    ? cfg.props.find(prop => prop.kind === 'stairs')
+    : entrance
+      ? cfg.props.find(prop => (prop.kind === 'door' || prop.kind === 'classdoor') && prop.to === entrance.fromRoom)
+      : undefined
+  const spawn = entryProp ? propAnchor(entryProp) : cfg.spawn
+  const direction: Direction = entryProp?.kind === 'classdoor' ? 'down' : 'up'
+  return { ...spawn, direction, distance: 0, moving: false, z: groundHeight(spawn.y, cfg) }
 }
 
 export function blocksOf(cfg: RoomConfig): Rect[] {

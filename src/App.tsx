@@ -6,7 +6,7 @@ import LibraryMission from './LibraryMission'
 import SwanMission from './SwanMission'
 import RoomScene, { emptyProgress, type RoomProgress } from './rooms/RoomScene'
 import { teachingRooms } from './rooms/teachingBuilding'
-import type { RoomConfig } from './rooms/types'
+import type { RoomConfig, RoomEntrance } from './rooms/types'
 import { initialPlayer, type PlayerState } from './world'
 import { campusImage, libraryImage, places, sampleDialogue, repeatGateDialogue, type Character, type PlaceId } from './content'
 
@@ -59,6 +59,11 @@ export default function App() {
   const [showNotes, setShowNotes] = useState(false)
   const [toast, setToast] = useState('')
   const [roomId, setRoomId] = useState(ENTRY_ROOM)
+  const [roomEntrance, setRoomEntrance] = useState<RoomEntrance | undefined>()
+  function goRoom(id: string, entrance?: RoomEntrance) {
+    setRoomEntrance(entrance)
+    setRoomId(id)
+  }
   const [roomProgress, setRoomProgress] = useState<Record<string, RoomProgress>>({})
   const [roomReturn, setRoomReturn] = useState<View>('play')
   const stage = useRef<HTMLElement>(null)
@@ -75,7 +80,7 @@ export default function App() {
   function startExploring() { go('play') }
   function enterRoom() {
     setRoomReturn(view === 'play' ? 'play' : 'campus')
-    setRoomId(ENTRY_ROOM)
+    goRoom(ENTRY_ROOM, { fromRoom: 'campus' })
     setPlace(null)
     setView('room')
   }
@@ -161,7 +166,7 @@ export default function App() {
 
       {view === 'campus' && <CampusMap onEnter={startExploring} onPlace={openPlace} introductory={introductory} player={mapReturn === 'play' ? playerStore.current : undefined} onReturn={mapReturn === 'play' && !introductory ? closeMap : undefined}/>}
       {view === 'play' && <ExploreGame character={character} playerStore={playerStore} paused={!!place || showNotes} onInteract={interactWith} onMap={openMap}/>}
-      {view === 'room' && <RoomScene key={roomId} room={ROOMS[roomId]} character={character} progress={roomProgress[roomId] ?? emptyProgress} onProgress={next => setRoomProgress(prev => ({ ...prev, [roomId]: next }))} onGoRoom={setRoomId} onExit={leaveRoom}/>}
+      {view === 'room' && <RoomScene key={roomId} room={ROOMS[roomId]} character={character} progress={roomProgress[roomId] ?? emptyProgress} teacherTaskCompleted={!!roomProgress['classroom-303']?.flags.quizPassed} onProgress={next => setRoomProgress(prev => ({ ...prev, [roomId]: next }))} entrance={roomEntrance} onGoRoom={goRoom} onExit={leaveRoom}/>}
 
       {view === 'swan' && <SwanMission onExit={exitSwan}/>}
 

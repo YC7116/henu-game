@@ -3,7 +3,7 @@ import type { Character } from '../content'
 import { distance, groundHeight, movePlayer, playerStart, PROP_REACH, propAnchor } from './engine'
 import { AwardPanel, CodePanel, DialoguePanel, FloorPanel, NotePanel } from './panels'
 import { renderRoom, type RoomArt } from './renderer'
-import type { Npc, PlayerState, RoomConfig, Vec } from './types'
+import type { Npc, PlayerState, RoomConfig, RoomEntrance, Vec } from './types'
 import './rooms.css'
 
 export type RoomProgress = {
@@ -26,7 +26,7 @@ type Target = {
   text?: string
 }
 
-type Panel = null | 'note' | 'npc' | 'box' | 'award' | 'floors'
+type Panel = null | 'note' | 'npc' | 'box' | 'boxHint' | 'award' | 'floors'
 
 function npcAnchor(npc: Npc): Vec {
   return { x: npc.at.x, y: npc.at.y + 26 }
@@ -117,17 +117,21 @@ export default function RoomScene({
   onProgress,
   onExit,
   onGoRoom,
+  teacherTaskCompleted = false,
+  entrance,
 }: {
   room: RoomConfig
   character: Character
   progress: RoomProgress
   onProgress: (next: RoomProgress) => void
   onExit: () => void
-  onGoRoom?: (id: string) => void
+  onGoRoom?: (id: string, entrance?: RoomEntrance) => void
+  teacherTaskCompleted?: boolean
+  entrance?: RoomEntrance
 }) {
   const cfg = room
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const playerRef = useRef<PlayerState>(playerStart(cfg))
+  const playerRef = useRef<PlayerState>(playerStart(cfg, entrance))
   const keys = useRef(new Set<string>())
   const progressRef = useRef(progress)
   const panelRef = useRef<Panel>(null)
@@ -150,7 +154,7 @@ export default function RoomScene({
     const current = progressRef.current
     if (target.kind === 'nav') {
       if (target.to === 'campus') exitRef.current()
-      else if (target.to) goRoomRef.current?.(target.to)
+      else if (target.to) goRoomRef.current?.(target.to, { fromRoom: cfg.id })
       return
     }
     if (target.kind === 'floors') {
@@ -173,10 +177,9 @@ export default function RoomScene({
         setPanel('note')
         return
       }
-      if (!current.flags.hintSeen) {
-        onProgress({ ...current, flags: { ...current.flags, hintSeen: true } })
-        setNote({ title: '盒子上的字', text: cfg.box.firstLine })
-        setPanel('note')
+      if (teacherTaskCompleted && !current.flags.teacherHintSeen) {
+        onProgress({ ...current, flags: { ...current.flags, teacherHintSeen: true } })
+        setPanel('boxHint')
         return
       }
       setPanel('box')
@@ -298,7 +301,7 @@ export default function RoomScene({
       if (inField) return
       if (event.key === 'Escape') {
         if (panelRef.current) {
-          setPanel(null)
+          setPanel(panelRef.current === 'boxHint' ? 'box' : null)
           return
         }
         exitRef.current()
@@ -442,16 +445,29 @@ export default function RoomScene({
             options={cfg.props.find(p => p.id === floorId)?.floors ?? []}
             onPick={to => {
               setPanel(null)
-              goRoomRef.current?.(to)
+              goRoomRef.current?.(to, 'stairs')
             }}
             onClose={() => setPanel(null)}
           />
         </div>
       )}
 
+      {panel === 'boxHint' && cfg.box && (
+        <div className="room-modal">
+          <div className="room-panel" role="dialog" aria-label="密码盒的提示">
+            <header className="rp-head">
+              <h3>密码盒的提示</h3>
+              <button className="rp-close" onClick={() => setPanel('box')} aria-label="关闭提示，输入密码">×</button>
+            </header>
+            <p className="rp-text">{cfg.box.firstLine}</p>
+            <button className="rp-primary" onClick={() => setPanel('box')}>试着输入密码</button>
+          </div>
+        </div>
+      )}
+
       {panel === 'box' && cfg.box && (
         <div className="room-modal">
-          <CodePanel box={cfg.box} onOpen={openBox} onClose={() => setPanel(null)} />
+          <CodePanel box={cfg.box} hint={teacherTaskCompleted ? cfg.box.firstLine : undefined} onOpen={openBox} onClose={() => setPanel(null)} />
         </div>
       )}
 

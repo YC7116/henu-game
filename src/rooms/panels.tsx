@@ -61,13 +61,16 @@ export function NotePanel({ title, text, onClose }: { title: string; text: strin
 /** 四位数轮，答错不惩罚，可以一直重试。 */
 export function CodePanel({
   box,
+  hint,
   onOpen,
   onClose,
 }: {
   box: LockBox
+  hint?: string
   onOpen: () => void
   onClose: () => void
 }) {
+  const [showHint, setShowHint] = useState(false)
   const [entry, setEntry] = useState('')
   const [status, setStatus] = useState<'idle' | 'ok' | 'bad'>('idle')
 
@@ -98,6 +101,14 @@ export function CodePanel({
         </button>
       </header>
       <p className="rp-text">{box.prompt}</p>
+      {hint && (
+        <div className="lock-hint">
+          <button className="lock-hint-toggle" aria-expanded={showHint} aria-controls="lock-hint-text" onClick={() => setShowHint(value => !value)}>
+            {showHint ? '收起提示' : '查看提示'}
+          </button>
+          {showHint && <p id="lock-hint-text" className="rp-text lock-hint-text">{hint}</p>}
+        </div>
+      )}
       <div className={`lock-display${status === 'ok' ? ' is-ok' : ''}${status === 'bad' ? ' is-bad' : ''}`}>
         {Array.from({ length: box.digits }, (_, i) => (
           <span key={i}>{entry[i] ?? ''}</span>

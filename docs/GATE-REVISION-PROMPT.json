@@ -1,0 +1,37 @@
+{
+  "tool": "built-in imagegen",
+  "mode": "precise-object-edit",
+  "transparent_background": false,
+  "referenced_image_paths": [
+    "/Users/peterchen/Henu game /jinming-prototype/public/assets/scenes/campus.png",
+    "/Users/peterchen/Henu game /picture/01-campus-original.PNG"
+  ],
+  "prompt": "Use case: precise-object-edit. Asset type: existing 1672x941 pixel-art campus panorama, one surgical correction only. Input image 1 is the EDIT TARGET, preserve its composition, camera, palette, pixel clusters, every building, all water, stadiums and landscape. Input image 2 is a layout reference only, never transfer its flat vector art style.\nPrimary request: correct the main WEST GATE location so the gate is DIRECTLY IN FRONT OF THE LIBRARY on the library's approach axis. In edit target image 1, the tall white-gray library is at approximately x=53%, y=44%; its front plaza and red flag are at x=48%, y=37%; extend the approach axis diagonally toward the upper-left until it reaches the diagonal western perimeter road at approximately x=36%, y=29%. Place the simple cream-colored main campus gate AT THAT BOUNDARY OPENING (center about 36% from left and 29% from top), not at far left and not inside a courtyard. Align its gateway opening and a short pale-paved entrance avenue with the red-flag library plaza. Use the same gate scale as the small old gate in the target image. Do not make it an ornate palace or grand ancient monument.\nThere is currently an incorrect conspicuous cream gateway at far left, centered around x=5%, y=53%, near the junction beside student residences. REMOVE ONLY THAT OLD GATE, replacing its pillars and beam with an ordinary unobtrusive perimeter wall/greenery continuation and normal roadside paving. Do not put a second prominent main gate there.\nStrict invariants: preserve pixel-for-pixel all other parts of image 1 outside these two small gate/paving patches. Keep exact positions, shapes, window patterns and sizes of the library, architecture college red-brick buildings at lower-left center, all other lab/teaching/residence buildings, both stadiums, tennis/basketball courts, every lake and bridge, trees and lawns. Keep the exact same 16:9 frame, no crop, no camera move, no rescaling of campus. Do not redesign the architecture college: its appearance is intentionally awaiting later real-world photos. Keep the warm sunshine, crisp detailed pixel art and colors completely unchanged. No text, labels, arrows, circled areas, UI, people, logo, watermark, or drawn coordinates. Correct only the west gate and minimum connecting paving. Return only the corrected full panorama.",
+  "output": "public/assets/scenes/campus-v0.1.1.png",
+  "status": "candidate_for_parent_review",
+  "gate_center_percent": {
+    "x": 35.4,
+    "y": 28.8
+  },
+  "limitations": [
+    "Gate moved and previous far-left gate removed; landmark layout visually maintained.",
+    "Generated full-image output includes mild global texture softening/repainting; it is not a pixel-exact local edit.",
+    "Do not alter architecture-college design based on this candidate; user is supplying real-world photos later."
+  ],
+  "optional_css_crop_regions_percent": [
+    {
+      "purpose": "new gate and minimal surrounding paving",
+      "left": 32.5,
+      "top": 24.5,
+      "right": 40,
+      "bottom": 34
+    },
+    {
+      "purpose": "remove old far-left gate",
+      "left": 1.2,
+      "top": 45.7,
+      "right": 10,
+      "bottom": 58
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>奶蛙 · 模型预览</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #d9e3ea; }
+      canvas { display: block; }
+      #hud {
+        position: fixed; left: 16px; top: 16px; padding: 10px 14px;
+        font: 13px/1.6 "Microsoft YaHei", system-ui, sans-serif;
+        background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.12);
+        border-radius: 10px; color: #2c3a34;
+      }
+      #hud b { font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div id="hud"><b>奶蛙模型预览</b><br />按键：<code>1</code> 待机 · <code>2</code> 跑 · <code>3</code> 大笑 · <code>4</code> 空手道</div>
+    <script type="module" src="/src/tour/frog-preview.ts"></script>
+  </body>
+</html>

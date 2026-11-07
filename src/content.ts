@@ -49,3 +49,63 @@ export const references = [
   { title: '05 · 筑小智像素设定', src: '/references/zhuxiaozhi-pixel.png', detail: '用于像素转化参考。原图为角色设定板，未经逐帧检验，不直接作为正式游戏精灵表。' },
   { title: '06 · 画风参考', src: '/references/style-reference.jpg', detail: '仅分析像素颗粒、铺砖、草木层次、俯视角与温暖氛围；不提取受版权保护的游戏素材。' },
 ]
+
+// 水系区域：观察黑天鹅 → 抓拍挑战。具体结果对话在 SwanMission 中。
+export const lakeDialogue = [
+  {
+    "speaker": "你",
+    "tag": "河大学生",
+    "text": "等等，水里那几只是黑天鹅吗？"
+  },
+  {
+    "speaker": "筑小智",
+    "tag": "校园知识守护者",
+    "text": "是啊。这段路的风景，它们每天都要巡视几遍。"
+  },
+  {
+    "speaker": "你",
+    "tag": "河大学生",
+    "text": "听起来比你还熟悉校园。"
+  },
+  {
+    "speaker": "筑小智",
+    "tag": "校园知识守护者",
+    "text": "水里的事，我确实得让它们三分。"
+  },
+  {
+    "speaker": "你",
+    "tag": "河大学生",
+    "text": "我想拍一张，可它们一直在游。"
+  },
+  {
+    "speaker": "筑小智",
+    "tag": "校园知识守护者",
+    "text": "那就试试抓住刚刚好的瞬间。拿出手机吧。"
+  },
+  {
+    "speaker": "你",
+    "tag": "河大学生",
+    "text": "有什么诀窍？"
+  },
+  {
+    "speaker": "筑小智",
+    "tag": "校园知识守护者",
+    "text": "看取景框里的轮廓。等黑天鹅游过来，与轮廓重合时，按下快门。"
+  },
+  {
+    "speaker": "你",
+    "tag": "河大学生",
+    "text": "听起来不难。"
+  },
+  {
+    "speaker": "筑小智",
+    "tag": "校园知识守护者",
+    "text": "一共五次机会，会越来越快。先别急着说这句话。"
+  },
+  {
+    "speaker": "你",
+    "tag": "河大学生",
+    "text": "来吧，让你看看我的反应！"
+  }
+]
+export const repeatLakeDialogue = [{speaker:'筑小智',tag:'校园知识守护者',text:'碎片已经收好了。这次，就给自己留一张喜欢的照片吧。'}]

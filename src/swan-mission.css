@@ -5,3 +5,8 @@
 .swan-mission iframe{border:0;width:100%;flex:1;min-height:0;background:#f0f0e5}
 .view-swan>.scene-topbar,.view-swan>.scene-bottomline{display:none}
 @media(max-width:600px){.swan-mission-head{padding:14px 10px}.swan-mission-head strong{font-size:13px}.swan-mission-head small{font-size:9px}.swan-mission-head .button{padding:10px;font-size:11px}}
+.swan-result{background:linear-gradient(#234a2715,#203b3260),url('/assets/scenes/swan-lakeside.png') center/cover no-repeat;isolation:isolate}
+.swan-result .swan-mission-head{position:relative;z-index:3;background:#f5f2e5ed}
+.swan-result .dialogue-box{z-index:3}
+.water-dialogue .scene-actors,.water-actors{left:9%;right:9%;transform:none;justify-content:space-between;gap:20px;pointer-events:none}
+@media(max-width:600px){.water-dialogue .scene-actors,.water-actors{left:5%;right:5%}.swan-result .dialogue-box{max-height:46%;overflow:auto}.swan-result .dialogue-actions{flex-wrap:wrap}}

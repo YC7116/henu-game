@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense, type ReactNode } from 'react'
 import CampusArtwork from './CampusArtwork'
 import CampusMap from './CampusMap'
 import ExploreGame from './ExploreGame'
@@ -8,9 +8,14 @@ import RoomScene, { emptyProgress, type RoomProgress } from './rooms/RoomScene'
 import { teachingRooms } from './rooms/teachingBuilding'
 import type { RoomConfig, RoomEntrance } from './rooms/types'
 import { initialPlayer, type PlayerState } from './world'
-import { campusImage, libraryImage, places, sampleDialogue, repeatGateDialogue, type Character, type PlaceId } from './content'
+import { campusImage, libraryImage, places, sampleDialogue, repeatGateDialogue, lakeDialogue, repeatLakeDialogue, type Character, type PlaceId } from './content'
+
+const FirstPersonTour=lazy(()=>import('./tour/FirstPersonTour'))
+const StadiumRun=lazy(()=>import('./tour/StadiumRun'))
 
 type View = 'home' | 'characters' | 'campus' | 'dialogue' | 'play' | 'library' | 'swan' | 'room'
+type DialogueKind = 'gate' | 'lake'
+const dialogueFor = (kind: DialogueKind, repeat: boolean) => kind === 'lake' ? (repeat ? repeatLakeDialogue : lakeDialogue) : (repeat ? repeatGateDialogue : sampleDialogue)
 
 const ROOMS: Record<string, RoomConfig> = Object.fromEntries(teachingRooms.map(room => [room.id, room]))
 const ENTRY_ROOM = teachingRooms[0].id
@@ -42,6 +47,8 @@ function Modal({ title, children, onClose, wide = false }: { title: string; chil
 const characterNames: Record<Character, string> = { boy: '男大学生', girl: '女大学生' }
 
 export default function App() {
+  const [isFullscreen,setIsFullscreen]=useState(false)
+  const [tour,setTour]=useState<'entry'|'stadium'|null>(null)
   const [view, setView] = useState<View>('home')
   const [swanReturn, setSwanReturn] = useState<'play' | 'campus'>('play')
   const [libraryComplete,setLibraryComplete]=useState(()=>{try{return localStorage.getItem('henu-library-module')==='1'}catch{return false}})
@@ -54,6 +61,8 @@ export default function App() {
   const [dialogueDone, setDialogueDone] = useState(false)
   const [gateMet,setGateMet] = useState(false)
   const [gateRepeat,setGateRepeat] = useState(false)
+  const [dialogueKind, setDialogueKind] = useState<DialogueKind>('gate')
+  const [lakeComplete, setLakeComplete] = useState(()=>{try{return localStorage.getItem('henu-lake-module')==='1'}catch{return false}})
   const [place, setPlace] = useState<PlaceId | null>(null)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [showNotes, setShowNotes] = useState(false)
@@ -70,10 +79,10 @@ export default function App() {
   const currentPlace = places.find(p => p.id === place)
   const currentPhoto = currentPlace?.photos?.[photoIndex] ?? currentPlace?.photos?.[0]
   const currentCrop = currentPhoto ? currentPhoto.crop : currentPlace?.crop
-  function startSwan() { setSwanReturn(view === 'campus' ? 'campus' : 'play'); go('swan') }
+  function startSwan() { setSwanReturn((view === 'dialogue' ? dialogueReturn : view) === 'campus' ? 'campus' : 'play'); go('swan') }
   function exitSwan() { go(swanReturn); openPlace('lake') }
   function openPlace(id: PlaceId) { setPhotoIndex(0); setPlace(id) }
-  function go(next: View) { setPlace(null); setIntroductory(false); setView(next) }
+  function go(next: View) { setTour(null); setPlace(null); setIntroductory(false); setView(next) }
   function openMap() { setMapReturn(view === 'campus' ? mapReturn : view); go('campus') }
   function closeMap() { go(mapReturn) }
   function startJourney() { setGateMet(false); setMapReturn('characters'); playerStore.current=initialPlayer(); setPlace(null); setIntroductory(true); setView('campus') }
@@ -90,14 +99,15 @@ export default function App() {
   }
   function interactWith(id: PlaceId | 'npc') { if (id === 'npc') startDialogue(gateMet); else if(id === 'library') go('library'); else openPlace(id) }
 
-  function startDialogue(repeat = false) { setGateRepeat(repeat); if (view !== 'dialogue') setDialogueReturn(view === 'play' ? 'play' : 'campus'); setDialogueIndex(0); setDialogueDone(false); go('dialogue') }
+  function startDialogue(repeat = false, kind: DialogueKind = 'gate') { setDialogueKind(kind); setGateRepeat(repeat); if (view !== 'dialogue') setDialogueReturn(view === 'play' ? 'play' : 'campus'); setDialogueIndex(0); setDialogueDone(false); go('dialogue') }
   function advanceDialogue() {
     if (dialogueDone) return
-    if (dialogueIndex < (gateRepeat ? repeatGateDialogue : sampleDialogue).length - 1) setDialogueIndex(i => i + 1)
-    else { setDialogueDone(true); if (!gateRepeat) setGateMet(true) }
+    if (dialogueIndex < dialogueFor(dialogueKind, gateRepeat).length - 1) setDialogueIndex(i => i + 1)
+    else { setDialogueDone(true); if (!gateRepeat) { if (dialogueKind === 'gate') setGateMet(true); /* Lake reward is granted by the photography result dialogue. */ } }
   }
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
+      if (tour) return
       if (document.querySelector('dialog[open]') || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return
       const target = event.target as HTMLElement
       if (target?.matches('input, textarea, select, [contenteditable="true"]')) return
@@ -113,13 +123,14 @@ export default function App() {
     }
     window.addEventListener('keydown', keydown)
     return () => window.removeEventListener('keydown', keydown)
-  }, [view, place, dialogueIndex, dialogueDone, mapReturn, dialogueReturn, swanReturn])
+  }, [view, place, dialogueIndex, dialogueDone, mapReturn, dialogueReturn, swanReturn, tour])
   useEffect(() => { if (!toast) return; const id = window.setTimeout(() => setToast(''), 3000); return () => clearTimeout(id) }, [toast])
+  useEffect(()=>{const changed=()=>setIsFullscreen(document.fullscreenElement===stage.current);document.addEventListener('fullscreenchange',changed);return()=>document.removeEventListener('fullscreenchange',changed)},[])
   async function fullscreen() {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await stage.current?.requestFullscreen() }
     catch { setToast('当前浏览器暂不支持全屏，请放大窗口预览。') }
   }
-  const dialogueLines = gateRepeat ? repeatGateDialogue : sampleDialogue
+  const dialogueLines = dialogueFor(dialogueKind, gateRepeat)
   const activeDialogue = dialogueLines[dialogueIndex]
   return <div className="app">
     <header className="site-header">
@@ -130,14 +141,14 @@ export default function App() {
       <button className="phase-badge" onClick={() => setShowNotes(true)}><span className="status-dot"/>阶段 3 · 路线试玩<Icon name="info" size={15}/></button>
     </header>
 
-    <main className={`game-shell view-${view}`} ref={stage}>
-      <div className="scene-image" key={view} style={{ backgroundImage: view === 'dialogue' ? `url('/assets/landmarks-v0.1.2/university-name.png')` : undefined }}>
+    <main className={`game-shell view-${view}`} ref={stage} data-fullscreen={isFullscreen}>
+      <div className="scene-image" key={view} style={{ backgroundImage: view === 'dialogue' ? `url('${dialogueKind === 'lake' ? '/assets/scenes/swan-lakeside.png' : '/assets/landmarks-v0.1.2/university-name.png'}')` : undefined }}>
         {view !== 'dialogue' && <CampusArtwork className="campus-backdrop"/>}
       </div>
       <div className="scene-shade"/>
       <div className="ambient" aria-hidden="true">{Array.from({length: 7}, (_, i) => <i key={i} style={{left: `${12 + i * 13}%`, animationDelay: `${-i * 2.2}s`}}/>)}</div>
       <div className="scene-topbar">
-        <div className="location-chip"><Icon name="pin" size={17}/><span>{view === 'dialogue' ? '金明校区 · 西大门' : view === 'play' ? '金明校区 · 沿路寻迹' : '河南大学 · 金明校区'}<small>{view === 'dialogue' ? '与筑小智初遇' : '一段校园里的温柔冒险'}</small></span></div>
+        <div className="location-chip"><Icon name="pin" size={17}/><span>{view === 'dialogue' ? (dialogueKind === 'lake' ? '金明校区 · 校园水系' : '金明校区 · 西大门') : view === 'play' ? '金明校区 · 沿路寻迹' : '河南大学 · 金明校区'}<small>{view === 'dialogue' ? (dialogueKind === 'lake' ? '水岸边的对话' : '与筑小智初遇') : '一段校园里的温柔冒险'}</small></span></div>
         <div className="scene-tools"><span className="weather"><Icon name="sun" size={19}/><span>晴日<small>视觉样张</small></span></span><button className="scene-tool" onClick={() => view === 'campus' ? closeMap() : openMap()} aria-label="查看校园全景" title="校园全景 (M)"><Icon name="map"/></button><button className="scene-tool fullscreen" onClick={fullscreen} aria-label="切换全屏" title="全屏预览"><Icon name="expand"/></button></div>
       </div>
 
@@ -165,21 +176,23 @@ export default function App() {
       </section>}
 
       {view === 'campus' && <CampusMap onEnter={startExploring} onPlace={openPlace} introductory={introductory} player={mapReturn === 'play' ? playerStore.current : undefined} onReturn={mapReturn === 'play' && !introductory ? closeMap : undefined}/>}
-      {view === 'play' && <ExploreGame character={character} playerStore={playerStore} paused={!!place || showNotes} onInteract={interactWith} onMap={openMap}/>}
+      {view === 'play' && <ExploreGame character={character} playerStore={playerStore} paused={!!place || showNotes || !!tour} onInteract={interactWith} onMap={openMap}/>}
       {view === 'room' && <RoomScene key={roomId} room={ROOMS[roomId]} character={character} progress={roomProgress[roomId] ?? emptyProgress} teacherTaskCompleted={!!roomProgress['classroom-303']?.flags.quizPassed} onProgress={next => setRoomProgress(prev => ({ ...prev, [roomId]: next }))} entrance={roomEntrance} onGoRoom={goRoom} onExit={leaveRoom}/>}
 
-      {view === 'swan' && <SwanMission onExit={exitSwan}/>}
+      {view === 'swan' && <SwanMission character={character} completed={lakeComplete} onComplete={()=>{setLakeComplete(true);try{localStorage.setItem('henu-lake-module','1')}catch{/* Keep session progress. */}}} onExit={exitSwan}/>}
 
       {view === 'library' && <LibraryMission character={character} completed={libraryComplete} onComplete={()=>{setLibraryComplete(true);try{localStorage.setItem('henu-library-module','1')}catch{/* Current session remains available. */}}} onExit={()=>go('play')}/>}
 
-      {view === 'dialogue' && <section className="dialogue-screen scene-enter" aria-label="西大门初遇筑小智">
-        <div className="dialogue-label"><span className="status-dot"/>西门初遇<small>校园探索 · 筑小智</small></div>
-        <div className="scene-actors"><div className="actor player-actor"><span className="actor-name">你 · {characterNames[character]}</span><img src={`/assets/characters/${character}.png`} alt="所选择的玩家形象"/></div><div className="actor npc-actor"><span className="greeting-bubble">校园里见！</span><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智，持蓝色发光建筑模型的校园知识守护者"/></div></div>
+      {view === 'dialogue' && <section className={`dialogue-screen scene-enter ${dialogueKind === 'lake' ? 'water-dialogue' : ''}`} aria-label={dialogueKind === 'lake' ? '校园水系偶遇筑小智' : '西大门初遇筑小智'}>
+        <div className="dialogue-label"><span className="status-dot"/>{dialogueKind === 'lake' ? '水岸偶遇' : '西门初遇'}<small>{dialogueKind === 'lake' ? '校园水系 · 筑小智' : '校园探索 · 筑小智'}</small></div>
+        <div className="scene-actors"><div className="actor player-actor"><span className="actor-name">你 · {characterNames[character]}</span><img src={`/assets/characters/${character}.png`} alt="所选择的玩家形象"/></div><div className="actor npc-actor"><span className="greeting-bubble">{dialogueKind === 'lake' ? '水边见！' : '校园里见！'}</span><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智，持蓝色发光建筑模型的校园知识守护者"/></div></div>
         <div className="dialogue-box" aria-live="polite">
           <div className="dialogue-portrait"><img src={`/assets/characters/${activeDialogue.speaker === '你' ? character : 'zhuxiaozhi'}.png`} alt=""/></div>
           <div className="dialogue-copy"><div className="speaker-line"><h3>{dialogueDone ? '新的目标'  : activeDialogue.speaker}</h3><span>{dialogueDone ? '校园探索'  : activeDialogue.tag}</span><small>{dialogueDone ? 'FIN' : `${dialogueIndex + 1} / ${dialogueLines.length}`}</small></div>
-            <p>{dialogueDone ? '前往图书馆，寻找第一块建筑碎片的线索。' : activeDialogue.text}</p>
-            <div className="dialogue-actions">{dialogueDone ? <><button onClick={() => go(dialogueReturn)}>返回校园<Icon name="map" size={15}/></button><button onClick={()=>startDialogue(false)}>重看对话 ↺</button></> : <><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={advanceDialogue}>{dialogueIndex === dialogueLines.length - 1 ? '结束对话' : '继续对话'}<Icon name="arrow" size={17}/></button></>}</div>
+            <p>{dialogueDone ? (dialogueKind === 'lake' ? '轮廓重合时按下快门。五轮中成功至少四次，即可完成挑战。' : '前往图书馆，寻找第一块建筑碎片的线索。') : activeDialogue.text}</p>
+            <div className="dialogue-actions">{dialogueDone ? (dialogueKind === 'lake'
+              ? <><button onClick={startSwan}>举起手机，拍摄黑天鹅<Icon name="arrow" size={15}/></button><button onClick={() => startDialogue(false, 'lake')}>重看对话 ↺</button><button onClick={() => go(dialogueReturn)}>返回校园<Icon name="map" size={15}/></button></>
+              : <><button onClick={() => go(dialogueReturn)}>返回校园<Icon name="map" size={15}/></button><button onClick={()=>startDialogue(false)}>重看对话 ↺</button></>) : <><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={advanceDialogue}>{dialogueIndex === dialogueLines.length - 1 ? '结束对话' : '继续对话'}<Icon name="arrow" size={17}/></button></>}</div>
           </div>
         </div>
       </section>}
@@ -192,12 +205,18 @@ export default function App() {
           {currentPlace.photos.map((photo, index) => <button key={photo.src} aria-pressed={photoIndex === index} onClick={() => setPhotoIndex(index)}>{photo.title}</button>)}
           <span aria-live="polite">{photoIndex + 1} / {currentPlace.photos.length}</span>
         </div>}
-        <div className="place-content"><span className="eyebrow">LANDMARK {currentPlace.number} · CONCEPT ART</span><h2>{currentPlace.name}</h2><p>{currentPlace.description}</p><div className="draft-note"><span>{currentPhoto ? '校园地标 · 像素近景' : '校园局部 · 视觉草稿'}</span><p>{currentPlace.note}</p></div>{currentPlace.id === 'lake' && <button className="button button-primary" onClick={startSwan}>举起手机，拍摄黑天鹅<Icon name="arrow" size={17}/></button>}{currentPlace.id === 'library' && view === 'play' && <button className="button button-primary" onClick={()=>go('library')}>进入图书馆<Icon name="arrow" size={17}/></button>}{currentPlace.id === 'teaching' && <button className="button button-primary" onClick={enterRoom}>进入综合教学楼<Icon name="arrow" size={17}/></button>}</div>
+        <div className="place-content"><span className="eyebrow">LANDMARK {currentPlace.number} · CONCEPT ART</span><h2>{currentPlace.name}</h2><p>{currentPlace.description}</p><div className="draft-note"><span>{currentPhoto ? '校园地标 · 像素近景' : '校园局部 · 视觉草稿'}</span><p>{currentPlace.note}</p></div>{currentPlace.id === 'lake' && <button className="button button-primary" onClick={() => startDialogue(lakeComplete, 'lake')}>与筑小智交谈 · 黑天鹅抓拍<Icon name="chat" size={17}/></button>}{currentPlace.id === 'library' && view === 'play' && <button className="button button-primary" onClick={()=>go('library')}>进入图书馆<Icon name="arrow" size={17}/></button>}{currentPlace.id === 'architecture' && <button className="button button-primary" onClick={()=>setTour('entry')}>进入建工院探索<Icon name="arrow" size={17}/></button>}{currentPlace.id === 'stadium' && <button className="button button-primary" onClick={()=>setTour('stadium')}>进入体育场 · 赛跑活动<Icon name="arrow" size={17}/></button>}{currentPlace.id === 'teaching' && <button className="button button-primary" onClick={enterRoom}>进入综合教学楼<Icon name="arrow" size={17}/></button>}</div>
       </aside>}
+      {tour && <section className="activity-host" aria-label={tour==='stadium'?'体育场赛跑活动':'建筑工程学院探索'}>
+        <button className="activity-fullscreen" onClick={fullscreen} title="切换全屏">{isFullscreen?'退出全屏 ⛶':'全屏显示 ⛶'}</button>
+        <Suspense fallback={<div className="tour-boot" role="status">正在展开三维场景……</div>}>
+          {tour==='stadium'?<StadiumRun onClose={()=>setTour(null)}/>:<FirstPersonTour onClose={()=>setTour(null)}/>}
+        </Suspense>
+      </section>}
       <div className="scene-bottomline"><span><i/>原创像素视觉草稿</span><span>HENU · JINMING CAMPUS</span></div>
     </main>
 
-    <footer className="site-footer"><div><span className="footer-leaf"><Icon name="leaf" size={16}/></span><span>把校园，慢慢读成故事。</span><span className="footer-separator"/><small>v0.3.1 · 校园步行路线试玩</small></div><div className="footer-controls"><span><kbd>M</kbd> 校园全景</span><span><kbd>Esc</kbd> 返回</span></div></footer>
+    <footer className="site-footer"><div><span className="footer-leaf"><Icon name="leaf" size={16}/></span><span>把校园，慢慢读成故事。</span><span className="footer-separator"/><small>v0.8.3 · 校园整合试玩</small></div><div className="footer-controls"><span><kbd>M</kbd> 校园全景</span><span><kbd>Esc</kbd> 返回</span></div></footer>
 
     {showNotes && <Modal title="这一次，先看见金明。" onClose={() => setShowNotes(false)}><p className="modal-intro">这是《河大寻迹：金明秘境》的第三阶段角色与探索交互试玩。按照你的路线图，先开放西大门、图书馆、综合教学楼、体育场、水系至建工学院的连续道路路线。</p><div className="scope-grid"><div><h3>现在可以体验</h3><p>男女主角四方向行走、沿路自动演示与手动接管、镜头跟随、道路边界阻挡、六处地标与筑小智互动，以及M键全景定位。</p></div><div><h3>留给后续共同设计</h3><p>建筑内部、正式剧情、任务关卡与存档。本次只做阶段3，完成后暂停等待你试玩验收。</p></div></div><div className="draft-note"><span>关于美术草稿</span><p>场景与人物由 AI 辅助生成，依据你提供的图片进行视觉转译；角色动画已分帧，本轮仅开放已描绘的路线步道，尚需你确认各段走向与贴边手感。院徽、1931 字样与真实建筑细节需要进一步校对。</p></div><button className="button button-primary" onClick={() => setShowNotes(false)}>回到视觉原型<Icon name="arrow" size={17}/></button></Modal>}
     {toast && <div className="toast" role="status">{toast}</div>}

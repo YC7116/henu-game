@@ -562,12 +562,6 @@ function drawStairs(ctx: CanvasRenderingContext2D, prop: Prop) {
   ctx.moveTo(x + w + 2, y)
   ctx.lineTo(x + w + 2, y + h)
   ctx.stroke()
-  ctx.fillStyle = 'rgba(58,72,58,.65)'
-  ctx.font = 'bold 11px "Songti SC", serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('↑', x + w / 2, y + h / 2)
-  ctx.textAlign = 'left'
 }
 
 function drawBench(ctx: CanvasRenderingContext2D, prop: Prop) {

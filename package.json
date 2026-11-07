@@ -1,6 +1,6 @@
 {
   "name": "henu-jinming-stage-one",
-  "version": "0.3.1",
+  "version": "0.8.3",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "check:stage3": "node scripts/check-stage3.mjs",
-    "check:swan": "node scripts/check-swan.mjs"
+    "check:swan": "node scripts/check-swan.mjs",
+    "check:water": "node scripts/check-water-dialogue.cjs"
   },
   "dependencies": { "react": "18.3.1", "react-dom": "18.3.1" },
   "devDependencies": {

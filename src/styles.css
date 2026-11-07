@@ -23,3 +23,12 @@
 
 /* User-provided collage: preserve whole buildings and apply the same gentle palette treatment. */
 .place-art.place-art-landmark{height:auto;background:#eee8d5}.place-art-landmark>img{width:100%;height:100%;object-fit:contain;filter:saturate(.9) brightness(.99)}.view-dialogue .scene-image{filter:saturate(.9) brightness(.99);background-position:center center}.landmark-gallery{display:flex;align-items:center;gap:5px;padding:10px 12px;background:#eeeede;border-bottom:1px solid #d8d9bf}.landmark-gallery button{padding:8px 10px;border:1px solid #c9ceb5;border-radius:3px;font-size:10px;letter-spacing:.3px}.landmark-gallery button[aria-pressed="true"]{background:#527154;color:#fff9e9;border-color:#527154}.landmark-gallery button:hover{background:#d9e1ca}.landmark-gallery button[aria-pressed="true"]:hover{background:#5d7c5e}.landmark-gallery>span{margin-left:auto;white-space:nowrap;font-size:9px;color:#8a9277}.view-dialogue .scene-shade{background:linear-gradient(0deg,#223b3190 0%,#30483412 50%,transparent 80%)}
+.place-content .button-quiet{width:100%;justify-content:center;border:1px solid #cfd6be;background:#f5f7ea;color:#5b7152;margin-top:18px;min-height:40px}
+.place-content .button-quiet:hover{background:#eef2de}
+
+/* Activities stay descendants of the same persistent Fullscreen API element. */
+.activity-host{position:absolute;inset:0;z-index:80;isolation:isolate;overflow:hidden;background:#f3f0e5}
+.activity-host .tour,.activity-host .stadium-run{position:absolute;inset:0;width:100%;height:100%;outline:none}
+.activity-fullscreen{position:absolute;right:18px;bottom:18px;z-index:120;background:#f6f1e4ee;border:1px solid #a2ad8a;color:#39513e;padding:9px 12px;font-size:11px}
+.tour-boot{position:absolute;inset:0;display:grid;place-items:center;background:#f3f0e5;color:#45614b;font-size:13px}
+.game-shell:fullscreen .activity-host{width:100%;height:100%}

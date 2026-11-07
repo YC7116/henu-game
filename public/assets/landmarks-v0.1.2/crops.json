@@ -1,0 +1,60 @@
+{
+  "source": "../picture/河南大学校园地标像素拼贴.png",
+  "method": "Lossless rectangular extraction; no AI regeneration; white collage separators excluded.",
+  "crops": [
+    {
+      "id": "architecture",
+      "title": "建筑工程学院",
+      "left": 0,
+      "top": 0,
+      "width": 834,
+      "height": 374,
+      "file": "architecture.png"
+    },
+    {
+      "id": "architecture-entry",
+      "title": "建工学院入口",
+      "left": 842,
+      "top": 0,
+      "width": 830,
+      "height": 374,
+      "file": "architecture-entry.png"
+    },
+    {
+      "id": "library",
+      "title": "图书馆",
+      "left": 0,
+      "top": 380,
+      "width": 834,
+      "height": 272,
+      "file": "library.png"
+    },
+    {
+      "id": "university-name",
+      "title": "河南大学校名",
+      "left": 842,
+      "top": 380,
+      "width": 830,
+      "height": 272,
+      "file": "university-name.png"
+    },
+    {
+      "id": "motto",
+      "title": "校训景观",
+      "left": 0,
+      "top": 658,
+      "width": 834,
+      "height": 283,
+      "file": "motto.png"
+    },
+    {
+      "id": "teaching",
+      "title": "综合教学楼",
+      "left": 842,
+      "top": 658,
+      "width": 830,
+      "height": 283,
+      "file": "teaching.png"
+    }
+  ]
+}

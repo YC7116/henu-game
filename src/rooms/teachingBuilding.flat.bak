@@ -1,0 +1,107 @@
+import type { RoomConfig } from './types'
+
+/**
+ * 综合教学楼 · 三层教室（303）。
+ *
+ * 房间尺寸 800 × 448，墙体 28。所有坐标都是房间内的世界坐标，
+ * 与 renderer 使用同一套数值，所以美术和碰撞不会错位。
+ * 8 张课桌排成 4 列 2 行，中间留出两条过道。
+ */
+export const teachingRoom: RoomConfig = {
+  id: 'teaching-303',
+  name: '综合教学楼 · 三层教室',
+  subtitle: '门牌 303 · 黑板还留着上一节课的粉笔灰',
+  size: { w: 800, h: 448 },
+  wall: 28,
+  topWall: 76,
+  spawn: { x: 392, y: 380 },
+  door: { x: 392, y: 412 },
+  props: [
+    { id: 'blackboard', kind: 'blackboard', x: 210, y: 22, w: 380, h: 30, note: { title: '黑板', text: '上一节课写到一半被擦掉了。只剩「3x² + 2x」，和一行没擦干净的「dx」。' } },
+    { id: 'clock', kind: 'clock', x: 624, y: 26, w: 34, h: 18, note: { title: '挂钟', text: '秒针还在走。它比教室里任何一个人都更清楚这节课拖了多久。' } },
+    { id: 'podium', kind: 'podium', x: 350, y: 88, w: 82, h: 38, block: { x: 350, y: 88, w: 82, h: 52 } },
+    { id: 'desk-1', kind: 'desk', x: 108, y: 168, w: 66, h: 34, block: { x: 108, y: 168, w: 66, h: 58 }, note: { title: '第一排课桌', text: '桌面上刻着一行小字：离黑板最近的人，往往最不敢举手。' } },
+    { id: 'desk-2', kind: 'desk', x: 248, y: 168, w: 66, h: 34, block: { x: 248, y: 168, w: 66, h: 58 }, note: { title: '第一排课桌', text: '抽屉里塞着一张折起来的草稿纸，写的是一道没算完的题。' } },
+    { id: 'desk-3', kind: 'desk', x: 388, y: 168, w: 66, h: 34, block: { x: 388, y: 168, w: 66, h: 58 }, note: { title: '第一排课桌', text: '椅背上还挂着一条围巾，主人大概已经走了很久。' } },
+    { id: 'desk-4', kind: 'desk', x: 528, y: 168, w: 66, h: 34, block: { x: 528, y: 168, w: 66, h: 58 }, note: { title: '第一排课桌', text: '桌角贴着一张便利贴：周三交作业。字迹已经褪了。' } },
+    { id: 'desk-5', kind: 'desk', x: 108, y: 254, w: 66, h: 34, block: { x: 108, y: 254, w: 66, h: 58 }, note: { title: '后排课桌', text: '这里离窗户最近，也离黑板最远。有人在这里睡过一整个下午。' } },
+    { id: 'desk-6', kind: 'desk', x: 248, y: 254, w: 66, h: 34, block: { x: 248, y: 254, w: 66, h: 58 }, note: { title: '后排课桌', text: '桌洞里有一支用到很短的粉笔。' } },
+    { id: 'desk-7', kind: 'desk', x: 388, y: 254, w: 66, h: 34, block: { x: 388, y: 254, w: 66, h: 58 }, note: { title: '后排课桌', text: '抽屉没有关严，里面好像有什么在发光。' } },
+    { id: 'desk-8', kind: 'desk', x: 528, y: 254, w: 66, h: 34, block: { x: 528, y: 254, w: 66, h: 58 }, note: { title: '后排课桌', text: '桌面上用铅笔写了一行公式，又被人擦掉了，只剩下印子。' } },
+    { id: 'cabinet', kind: 'cabinet', x: 642, y: 88, w: 86, h: 52, block: { x: 642, y: 88, w: 86, h: 60 } },
+    { id: 'window', kind: 'window', x: 2, y: 130, w: 26, h: 150, note: { title: '窗外', text: '走廊对面的楼里还亮着几盏灯。下午的光斜斜地铺进来，落满了半间教室。' } },
+    { id: 'bulletin', kind: 'bulletin', x: 774, y: 150, w: 24, h: 104, note: { title: '班级公告栏', text: '值日表、竞赛通知，还有一张被撕掉一半的座位表。撕口正好在第三排。' } },
+    { id: 'plant', kind: 'plant', x: 58, y: 336, w: 34, h: 24, block: { x: 58, y: 336, w: 34, h: 26 }, note: { title: '绿萝', text: '叶子有点蔫，但还活着。假期里大概没人给它浇水。' } },
+    { id: 'door', kind: 'door', x: 356, y: 416, w: 72, h: 28 },
+    { id: 'stairs', kind: 'stairs', x: 690, y: 328, w: 58, h: 74, block: { x: 690, y: 328, w: 58, h: 76 }, label: '上二层 · 语音实验室' },
+  ],
+  tip: '沿着黑板、课桌、窗台、公告栏找找看。金黄色的点就是碎片。',
+  exitLabel: '离开教室',
+  stairsTo: 'language-lab',
+  shards: [
+    {
+      id: 'int',
+      piece: '∫',
+      title: '积分号碎片',
+      slot: 0,
+      source: 'sequence',
+      clue: '讲台抽屉上有一把符号锁，锁面刻着「按写出一道定积分的顺序」。',
+    },
+    {
+      id: 'bound',
+      piece: '₀²',
+      title: '上下限碎片',
+      slot: 1,
+      source: 'pickup',
+      at: { x: 470, y: 70 },
+      clue: '黑板槽里有东西反光，就在粉笔灰最多的地方。',
+    },
+    {
+      id: 'quad',
+      piece: '3x²',
+      title: '二次项碎片',
+      slot: 2,
+      source: 'pickup',
+      at: { x: 421, y: 282 },
+      clue: '后排中间那张桌子的抽屉没有关严。',
+    },
+    {
+      id: 'linear',
+      piece: '+2x',
+      title: '一次项碎片',
+      slot: 3,
+      source: 'pickup',
+      at: { x: 42, y: 165 },
+      requires: 2,
+      clue: '窗台的粉笔字迹，要等手上有点东西了才看得懂。',
+    },
+    {
+      id: 'diff',
+      piece: 'dx',
+      title: '微分碎片',
+      slot: 4,
+      source: 'pickup',
+      at: { x: 756, y: 200 },
+      requires: 3,
+      clue: '公告栏上那张被撕掉一半的座位表。',
+    },
+  ],
+  puzzle: {
+    slots: ['积分号', '上下限', '二次项', '一次项', '微分'],
+    lock: {
+      answer: '12',
+      digits: 2,
+      question: '∫₀² (3x² + 2x) dx = ?',
+      hint: '∫3x²dx = x³，∫2x dx = x²。原函数是 x³ + x²，代入上下限相减。',
+    },
+    sequence: {
+      prompt: '抽屉上的铜锁有五个符号槽。锁面刻着：按写出一道定积分的顺序。',
+      order: ['∫', '₀²', '3x²', '+2x', 'dx'],
+      buttons: ['3x²', 'dy', '∫', '+2x', '₀²', '= C', 'dx', '∫₀¹'],
+    },
+  },
+  award: {
+    name: '教学楼的建筑碎片',
+    text: '一块嵌着窗格的碎片，边缘还留着粉笔的白。它记得所有在这个教室里算错的式子，也记得所有算对的那一次。',
+  },
+}

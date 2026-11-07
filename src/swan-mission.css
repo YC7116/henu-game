@@ -1,0 +1,7 @@
+.swan-mission{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;background:#f0f0e5;color:#294c3d}
+.swan-mission-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid #d4d9c5}
+.swan-mission-head strong{font-size:16px;letter-spacing:1px}.swan-mission-head small{display:block;font-size:11px;margin-top:7px;color:#78866d}
+.swan-mission-head .button{padding:11px 18px;min-height:0;font-size:12px;white-space:nowrap}
+.swan-mission iframe{border:0;width:100%;flex:1;min-height:0;background:#f0f0e5}
+.view-swan>.scene-topbar,.view-swan>.scene-bottomline{display:none}
+@media(max-width:600px){.swan-mission-head{padding:14px 10px}.swan-mission-head strong{font-size:13px}.swan-mission-head small{font-size:9px}.swan-mission-head .button{padding:10px;font-size:11px}}

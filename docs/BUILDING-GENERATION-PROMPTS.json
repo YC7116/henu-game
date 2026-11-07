@@ -1,0 +1,23 @@
+{
+  "mode": "built-in image_gen.imagegen",
+  "stage": 1,
+  "assets": [
+    {
+      "output": "public/assets/scenes/library.png",
+      "referenced_image_paths": [
+        "/Users/peterchen/Henu game /picture/01-campus-original.PNG"
+      ],
+      "transparent_background": false,
+      "prompt": "Use case: stylized-concept. Asset type: 2D pixel RPG campus building scene concept, wide landscape composition. Reference image is a campus schematic, only spatial/massing reference, not a literal background. Make one beautifully detailed warm pixel-art scene of Henan University Jinming campus LIBRARY, the large white/light gray building near the center of the campus reference directly above the western pond. Precisely retain its recognizable modern academic massing: staggered taller central rectilinear tower, many neat blue grid windows, stepped flanking blocks, a curved near-side entry volume, low wings and light pergola lattice rooftop elements. Retain modern flat gray roofs; NOT a traditional Chinese temple, NOT a fantasy palace. Frame the complete building amid a paved forecourt, ornamental mature trees, textured grassy verges, warm paving and a glimpse of blue water beside the foreground. Elevated 3/4 RPG view, building fills upper-middle half, lower one third usable stone plaza for later UI overlay. Warm clear daylight. Original refined 16-bit pixel art, crisp deliberately square pixel clusters, subtle dither texture, rich foliage detail, cozy campus feeling, sage/forest greens, honey paving, muted terracotta accents, blue water and windows. No text, labels, logos, people, UI, or game HUD. This is only a stage-1 visual draft based on schematic reference, not a claim of surveyed architectural accuracy. Output landscape image."
+    },
+    {
+      "output": "public/assets/scenes/architecture.png",
+      "referenced_image_paths": [
+        "/Users/peterchen/Henu game /picture/01-campus-original.PNG",
+        "/private/tmp/henu-campus-marked.png"
+      ],
+      "transparent_background": false,
+      "prompt": "Use case: stylized-concept. Asset type: 2D pixel RPG campus building scene concept, wide landscape composition. Both input images are architectural-massing reference. Focus ONLY on the red brick academic building labeled 建筑工程学院 inside the hand-drawn black circle in image 2, located below-left of the library in the pictured orientation and just south of the western lake. Create a detailed pixel-art setting around that single modern building. Preserve its long multi-storey red-brick wings, light gray flat roof, regular blue window grids and pale vertical detailing. A long red-brick wing runs diagonally through the scene in elevated 3/4 RPG perspective. Do not include the neighboring buildings labeled Physics or Geography as if part of this college. NOT a traditional temple, not a castle. Surround with textured grassy banks, mature lush trees, a nearby lake behind, pale honey stone paths and a modest open paved foreground for a later character dialogue overlay; keep complete building visible. Warm sunny natural campus mood, original refined 16-bit pixel art with clearly square pixel clusters and restrained dithering, leafy detailed trees, soft green grass, muted brick vermilion, gray roofs, blue glass and water. No people, no text, labels, logos, UI, or HUD. This is stage-1 concept art based only on the campus map; do not invent a grand ornate entrance. Wide landscape image."
+    }
+  ]
+}

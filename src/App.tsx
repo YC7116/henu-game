@@ -2,10 +2,19 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import CampusArtwork from './CampusArtwork'
 import CampusMap from './CampusMap'
 import ExploreGame from './ExploreGame'
+import RoomScene, { emptyProgress, type RoomProgress } from './rooms/RoomScene'
+import { teachingRoom } from './rooms/teachingBuilding'
+import { languageLab } from './rooms/languageLab'
+import type { RoomConfig } from './rooms/types'
 import { initialPlayer, type PlayerState } from './world'
 import { campusImage, libraryImage, places, sampleDialogue, type Character, type PlaceId } from './content'
 
-type View = 'home' | 'characters' | 'campus' | 'dialogue' | 'play'
+type View = 'home' | 'characters' | 'campus' | 'dialogue' | 'play' | 'room'
+
+const ROOMS: Record<string, RoomConfig> = {
+  [teachingRoom.id]: teachingRoom,
+  [languageLab.id]: languageLab,
+}
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
     leaf: <><path d="M20 4C9 2 3 8 5 15c1 5 8 6 11 2 3-4 4-13 4-13Z"/><path d="m4 21 11-11M9 16v-5m0 5h5"/></>,
@@ -46,6 +55,9 @@ export default function App() {
   const [photoIndex, setPhotoIndex] = useState(0)
   const [showNotes, setShowNotes] = useState(false)
   const [toast, setToast] = useState('')
+  const [roomId, setRoomId] = useState(teachingRoom.id)
+  const [roomProgress, setRoomProgress] = useState<Record<string, RoomProgress>>({})
+  const [roomReturn, setRoomReturn] = useState<View>('play')
   const stage = useRef<HTMLElement>(null)
   const currentPlace = places.find(p => p.id === place)
   const currentPhoto = currentPlace?.photos?.[photoIndex] ?? currentPlace?.photos?.[0]
@@ -55,6 +67,16 @@ export default function App() {
   function closeMap() { go(mapReturn) }
   function startJourney() { setMapReturn('characters'); playerStore.current=initialPlayer(); setPlace(null); setIntroductory(true); setView('campus') }
   function startExploring() { go('play') }
+  function enterRoom() {
+    setRoomReturn(view === 'play' ? 'play' : 'campus')
+    setRoomId(teachingRoom.id)
+    setPlace(null)
+    setView('room')
+  }
+  function leaveRoom() {
+    setPlace(null)
+    setView(roomReturn)
+  }
   function interactWith(id: PlaceId | 'npc') { if (id === 'npc') startDialogue(); else openPlace(id) }
 
   function startDialogue() { if (view !== 'dialogue') setDialogueReturn(view === 'play' ? 'play' : 'campus'); setDialogueIndex(0); setDialogueDone(false); go('dialogue') }
@@ -68,6 +90,7 @@ export default function App() {
       if (document.querySelector('dialog[open]') || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return
       const target = event.target as HTMLElement
       if (target?.matches('input, textarea, select, [contenteditable="true"]')) return
+      if (view === 'room') return
       if (event.key.toLowerCase() === 'm') { event.preventDefault(); view === 'campus' ? closeMap() : openMap() }
       if (event.key === 'Escape') { if (place) setPlace(null); else if (view === 'campus') closeMap(); else if (view === 'play') openMap(); else if (view === 'dialogue') go(dialogueReturn); else go('home') }
       if (view === 'dialogue' && ['e', 'E', ' '].includes(event.key)) {
@@ -129,6 +152,7 @@ export default function App() {
 
       {view === 'campus' && <CampusMap onEnter={startExploring} onPlace={openPlace} introductory={introductory} player={mapReturn === 'play' ? playerStore.current : undefined} onReturn={mapReturn === 'play' && !introductory ? closeMap : undefined}/>}
       {view === 'play' && <ExploreGame character={character} playerStore={playerStore} paused={!!place || showNotes} onInteract={interactWith} onMap={openMap}/>}
+      {view === 'room' && <RoomScene key={roomId} room={ROOMS[roomId]} character={character} progress={roomProgress[roomId] ?? emptyProgress} onProgress={next => setRoomProgress(prev => ({ ...prev, [roomId]: next }))} onGoRoom={setRoomId} onExit={leaveRoom}/>}
 
       {view === 'dialogue' && <section className="dialogue-screen scene-enter" aria-label="筑小智示例对话">
         <div className="dialogue-label"><span className="status-dot"/>初次相遇<small>示例对话 · 非正式剧情</small></div>
@@ -150,7 +174,8 @@ export default function App() {
           {currentPlace.photos.map((photo, index) => <button key={photo.src} aria-pressed={photoIndex === index} onClick={() => setPhotoIndex(index)}>{photo.title}</button>)}
           <span aria-live="polite">{photoIndex + 1} / {currentPlace.photos.length}</span>
         </div>}
-        <div className="place-content"><span className="eyebrow">LANDMARK {currentPlace.number} · CONCEPT ART</span><h2>{currentPlace.name}</h2><p>{currentPlace.description}</p><div className="draft-note"><span>{currentPhoto ? '校园地标 · 像素近景' : '校园局部 · 视觉草稿'}</span><p>{currentPlace.note}</p></div>{currentPlace.id === 'library' && <button className="button button-primary" onClick={startDialogue}>在这里遇见筑小智<Icon name="chat" size={17}/></button>}</div>
+        <div className="place-content"><span className="eyebrow">LANDMARK {currentPlace.number} · CONCEPT ART</span><h2>{currentPlace.name}</h2><p>{currentPlace.description}</p><div className="draft-note"><span>{currentPhoto ? '校园地标 · 像素近景' : '校园局部 · 视觉草稿'}</span><p>{currentPlace.note}</p></div>{currentPlace.id === 'library' && <button className="button button-primary" onClick={startDialogue}>在这里遇见筑小智<Icon name="chat" size={17}/></button>}
+          {currentPlace.id === 'teaching' && <button className="button button-primary" onClick={enterRoom}>进入综合教学楼<Icon name="arrow" size={17}/></button>}</div>
       </aside>}
       <div className="scene-bottomline"><span><i/>原创像素视觉草稿</span><span>HENU · JINMING CAMPUS</span></div>
     </main>

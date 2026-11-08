@@ -11,6 +11,7 @@ import { teachingRooms } from './rooms/teachingBuilding'
 import type { RoomConfig, RoomEntrance } from './rooms/types'
 import { initialPlayer, type PlayerState } from './world'
 import { campusImage, libraryImage, places, sampleDialogue, repeatGateDialogue, lakeDialogue, repeatLakeDialogue, type Character, type PlaceId } from './content'
+import { asset } from './asset-path'
 
 const FirstPersonTour=lazy(()=>import('./tour/FirstPersonTour'))
 const StadiumRun=lazy(()=>import('./tour/StadiumRun'))
@@ -147,7 +148,7 @@ export default function App() {
   const activeDialogue = dialogueLines[dialogueIndex]
   return <div className="app">
     <header className="site-header">
-      <button className="brand" onClick={() => go('home')} aria-label="回到游戏首页"><span className="brand-mark"><img src="/favicon.svg" alt=""/></span><span>河大寻迹<small>JINMING ADVENTURE</small></span></button>
+      <button className="brand" onClick={() => go('home')} aria-label="回到游戏首页"><span className="brand-mark"><img src={asset("/favicon.svg")} alt=""/></span><span>河大寻迹<small>JINMING ADVENTURE</small></span></button>
       <nav aria-label="原型场景导航">
         {([['home', '序章'], ['campus', '校园一览'], ['play', '路线试玩'], ['characters', '角色手册'], ['dialogue', '遇见筑小智']] as [View, string][]).map(([id, label]) => <button key={id} aria-current={view === id ? 'page' : undefined} onClick={() => id === 'dialogue' ? startDialogue() : id === 'campus' ? openMap() : id === 'play' ? startExploring() : go(id)} className={view === id ? 'nav-active' : ''}>{label}</button>)}
       </nav>
@@ -155,7 +156,7 @@ export default function App() {
     </header>
 
     <main className={`game-shell view-${view}`} ref={stage} data-fullscreen={isFullscreen}>
-      <div className="scene-image" key={view} style={{ backgroundImage: view === 'dialogue' ? `url('${dialogueKind === 'lake' ? '/assets/scenes/swan-lakeside.png' : '/assets/landmarks-v0.1.2/university-name.png'}')` : undefined }}>
+      <div className="scene-image" key={view} style={{ backgroundImage: view === 'dialogue' ? `url('${asset(dialogueKind === 'lake' ? '/assets/scenes/swan-lakeside.png' : '/assets/landmarks-v0.1.2/university-name.png')}')` : undefined }}>
         {view !== 'dialogue' && <CampusArtwork className="campus-backdrop"/>}
       </div>
       <div className="scene-shade"/>
@@ -181,7 +182,7 @@ export default function App() {
         <div className="character-options">
           {(['boy', 'girl'] as Character[]).map((id, i) => <button className={`character-card ${character === id ? 'selected' : ''}`} onClick={() => setCharacter(id)} key={id} aria-pressed={character === id}>
             <span className="character-number">0{i + 1}<small>HENU STUDENT</small></span><span className="selection-indicator">{character === id && <Icon name="check" size={16}/>}</span>
-            <div className="character-art"><span className="character-halo"/><img src={`/assets/characters/${id}.png`} alt={`${characterNames[id]}：蓝色外套、背包、${id === 'girl' ? '棕色马尾' : '棕色短发'}`}/><span className="character-ground"/></div>
+            <div className="character-art"><span className="character-halo"/><img src={asset(`/assets/characters/${id}.png`)} alt={`${characterNames[id]}：蓝色外套、背包、${id === 'girl' ? '棕色马尾' : '棕色短发'}`}/><span className="character-ground"/></div>
             <h3>{characterNames[id]}</h3><p>{id === 'boy' ? '蓝白外套 · 轻装出发' : '清爽马尾 · 背上好奇心'}</p><span className="character-selected-label">{character === id ? '已选择 · 就是你了' : '点击选择'}</span>
           </button>)}
         </div>
@@ -198,9 +199,9 @@ export default function App() {
 
       {view === 'dialogue' && <section className={`dialogue-screen scene-enter ${dialogueKind === 'lake' ? 'water-dialogue' : ''}`} aria-label={dialogueKind === 'lake' ? '校园水系偶遇筑小智' : '西大门初遇筑小智'}>
         <div className="dialogue-label"><span className="status-dot"/>{dialogueKind === 'lake' ? '水岸偶遇' : '西门初遇'}<small>{dialogueKind === 'lake' ? '校园水系 · 筑小智' : '校园探索 · 筑小智'}</small></div>
-        <div className="scene-actors"><div className="actor player-actor"><span className="actor-name">你 · {characterNames[character]}</span><img src={`/assets/characters/${character}.png`} alt="所选择的玩家形象"/></div><div className="actor npc-actor"><span className="greeting-bubble">{dialogueKind === 'lake' ? '水边见！' : '校园里见！'}</span><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智，持蓝色发光建筑模型的校园知识守护者"/></div></div>
+        <div className="scene-actors"><div className="actor player-actor"><span className="actor-name">你 · {characterNames[character]}</span><img src={asset(`/assets/characters/${character}.png`)} alt="所选择的玩家形象"/></div><div className="actor npc-actor"><span className="greeting-bubble">{dialogueKind === 'lake' ? '水边见！' : '校园里见！'}</span><img src={asset("/assets/characters/zhuxiaozhi.png")} alt="筑小智，持蓝色发光建筑模型的校园知识守护者"/></div></div>
         <div className="dialogue-box" aria-live="polite">
-          <div className="dialogue-portrait"><img src={`/assets/characters/${activeDialogue.speaker === '你' ? character : 'zhuxiaozhi'}.png`} alt=""/></div>
+          <div className="dialogue-portrait"><img src={asset(`/assets/characters/${activeDialogue.speaker === '你' ? character : 'zhuxiaozhi'}.png`)} alt=""/></div>
           <div className="dialogue-copy"><div className="speaker-line"><h3>{dialogueDone ? '新的目标'  : activeDialogue.speaker}</h3><span>{dialogueDone ? '校园探索'  : activeDialogue.tag}</span><small>{dialogueDone ? 'FIN' : `${dialogueIndex + 1} / ${dialogueLines.length}`}</small></div>
             <p>{dialogueDone ? (dialogueKind === 'lake' ? '轮廓重合时按下快门。五轮中成功至少四次，即可完成挑战。' : '前往图书馆，寻找第一块建筑碎片的线索。') : activeDialogue.text}</p>
             <div className="dialogue-actions"><button disabled={!dialogueDone&&dialogueIndex===0} onClick={previousDialogue}>← 上一句</button>{dialogueDone&&<span><kbd>空格</kbd> 返回校园</span>}{dialogueDone ? (dialogueKind === 'lake'

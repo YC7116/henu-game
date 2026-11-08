@@ -9,6 +9,7 @@ import PhotoViewer from '../PhotoViewer'
 import { gateBefore, gateAfter, journeyEnding } from '../scene-dialogue-lines'
 import type { Character } from '../content'
 import { BUILD_STAGES, GATE_DISPLAY_URL } from './gate-display'
+import { asset } from '../asset-path'
 
 /**
  * First-person interior walk-through for 建筑工程学院.
@@ -1164,7 +1165,7 @@ export default function FirstPersonTour({ onClose, view, character='boy', onComp
       {assembly.status==='complete'&&<button onClick={()=>{setDetailOpen(true);if(document.pointerLockElement)document.exitPointerLock()}}>查看3D环绕详细展示</button>}{assembly.status==='complete'&&<button onClick={()=>setGatePhotoOpen(true)}>查看完整图片</button>}{assembly.status==='complete'&&<button onClick={()=>{endingSeen.current=true;setGateDialogue('ending')}}>与筑小智道别</button>}<button onClick={()=>setAssemblyOpen(false)}>返回教室</button></div></div>}
       {gateDialogue&&<SceneDialogue key={gateDialogue} character={character} lines={gateDialogue==='before'?gateBefore:gateDialogue==='after'?gateAfter:journeyEnding} title={gateDialogue==='before'?'606 · 搭建前对话':gateDialogue==='after'?'606 · 揭晓答案':'606 · 校园里见'} finishLabel={gateDialogue==='before'?'开始搭建':gateDialogue==='after'?'环绕查看南大门':'结束对话'} cancelLabel={gateDialogue==='before'?'先看看展示台':'留在展示台旁'} onCancel={gateDialogue==='ending'?undefined:()=>setGateDialogue(null)} onFinish={()=>{if(gateDialogue==='before'){assemblyApi.current.start()}else if(gateDialogue==='after'){setDetailOpen(true)}else{setEndingOpen(true)}setGateDialogue(null)}}/>}
       {endingOpen&&<section className="journey-ending" role="dialog" aria-modal="true" aria-label="寻迹旅程结束"><div className="journey-ending-copy"><span>河大寻迹 · 金明秘境</span><h2>这次寻迹，暂告一段落。</h2><p>下次路过，记得看看身边的风景。</p><p>按空格返回校园</p><div><button onClick={()=>closeRef.current()}>返回校园 →</button><button onClick={()=>{setEndingOpen(false);setDetailOpen(true)}}>再看看南大门 ⛶</button><button onClick={()=>setGatePhotoOpen(true)}>查看完整图片</button></div></div></section>}
-      {gatePhotoOpen&&<PhotoViewer place={{id:'architecture',name:'南大门完整图片',number:'06',x:0,y:0,image:'/assets/rewards/fragments/south-gate-complete.png',description:'',note:'',photos:[{src:'/assets/rewards/fragments/south-gate-complete.png',title:'河南大学南大门 · 完整微缩景观',width:1392,height:1130}]}} index={0} onIndex={()=>{}} onClose={()=>setGatePhotoOpen(false)}/>}
+      {gatePhotoOpen&&<PhotoViewer place={{id:'architecture',name:'南大门完整图片',number:'06',x:0,y:0,image:asset('/assets/rewards/fragments/south-gate-complete.png'),description:'',note:'',photos:[{src:asset('/assets/rewards/fragments/south-gate-complete.png'),title:'河南大学南大门 · 完整微缩景观',width:1392,height:1130}]}} index={0} onIndex={()=>{}} onClose={()=>setGatePhotoOpen(false)}/>}
       {detailOpen&&<section className="gate-detail-overlay" role="dialog" aria-modal="true" aria-label="南大门3D环绕详细展示"><div className="gate-detail-head"><strong>南大门 · 3D环绕详细展示</strong><button ref={detailClose} onClick={closeDetail}>结束欣赏，返回606 ×</button></div><iframe ref={detailFrame} title="南大门环绕模型" src={GATE_DISPLAY_URL} onLoad={()=>detailClose.current?.focus({preventScroll:true})}/></section>}
       {game606 && <MiniGame606 onWin={winFragment} onClose={closeGame} />}
 

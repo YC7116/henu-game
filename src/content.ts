@@ -1,27 +1,28 @@
+import { asset } from './asset-path'
 export type PlaceId = 'library' | 'architecture' | 'gate' | 'teaching' | 'lake' | 'stadium'
 export type Character = 'boy' | 'girl'
-export const campusImage = '/assets/scenes/campus.png'
-export const libraryImage = '/assets/landmarks-v0.1.2/library.png'
+export const campusImage = asset('/assets/scenes/campus.png')
+export const libraryImage = asset('/assets/landmarks-v0.1.2/library.png')
 export type LandmarkPhoto = { src: string; title: string; width: number; height: number; crop?: { x: number; y: number; zoom: number } }
 export const places: { id: PlaceId; name: string; number: string; x: number; y: number; image: string; description: string; note: string; photos?: LandmarkPhoto[]; crop?: { x: number; y: number; zoom: number } }[] = [
-  { id: 'gate', name: '西大门', number: '01', x: 35.4, y: 28.8, image: '/assets/landmarks-v0.1.2/university-name.png', photos: [
-    { src: '/assets/landmarks-v0.1.2/university-name.png', title: '河南大学校名', width: 830, height: 272 },
-    { src: '/assets/landmarks-v0.1.2/motto.png', title: '校训景观', width: 834, height: 283 },
+  { id: 'gate', name: '西大门', number: '01', x: 35.4, y: 28.8, image: asset('/assets/landmarks-v0.1.2/university-name.png'), photos: [
+    { src: asset('/assets/landmarks-v0.1.2/university-name.png'), title: '河南大学校名', width: 830, height: 272 },
+    { src: asset('/assets/landmarks-v0.1.2/motto.png'), title: '校训景观', width: 834, height: 283 },
   ], description: '从河南大学校名，到校训景观，认识校园入口处熟悉的风景。', note: '西大门位于图书馆正前方。两张近景采用你提供的像素图片。' },
   { id: 'library', name: '图书馆', number: '02', x: 53, y: 44, image: libraryImage, photos: [
     { src: libraryImage, title: '图书馆', width: 834, height: 272 },
   ], description: '开阔的屋檐、弧形玻璃幕墙与馆前台阶，在像素里留下熟悉的图书馆轮廓。', note: '此处近景与筑小智对话背景采用同一张图书馆图片。' },
-  { id: 'teaching', name: '综合教学楼', number: '03', x: 63, y: 55, image: '/assets/landmarks-v0.1.2/teaching.png', photos: [
-    { src: '/assets/landmarks-v0.1.2/teaching.png', title: '综合教学楼', width: 830, height: 283 },
+  { id: 'teaching', name: '综合教学楼', number: '03', x: 63, y: 55, image: asset('/assets/landmarks-v0.1.2/teaching.png'), photos: [
+    { src: asset('/assets/landmarks-v0.1.2/teaching.png'), title: '综合教学楼', width: 830, height: 283 },
   ], description: '整齐的窗格、明亮的玻璃和楼前的自行车，组成日常上课时熟悉的校园景象。', note: '采用你提供的综合教学楼像素图片；全景标记沿用当前视觉稿的位置。' },
   { id: 'lake', name: '校园水系', number: '05', x: 55, y: 63, image: campusImage, photos: [
-    { src: '/assets/scenes/swan-lakeside.png', title: '黑天鹅湖畔', width: 1672, height: 941 },
+    { src: asset('/assets/scenes/swan-lakeside.png'), title: '黑天鹅湖畔', width: 1672, height: 941 },
     { src: campusImage, title: '水岸与步道', width: 1672, height: 941, crop: { x: 55, y: 62, zoom: 3.8 } },
   ], description: '树影落在水面上，黑天鹅从岸边悠然游过。举起手机，试着抓住它与取景轮廓重合的瞬间。', note: '沿水岸看看风景，也可以参加五轮黑天鹅抓拍。点击快门或按空格拍摄，速度会逐轮加快。' },
   { id: 'stadium', name: '志义体育场', number: '04', x: 85, y: 64, image: campusImage, crop: { x: 85, y: 64, zoom: 4.1 }, description: '橙色环形跑道与绿色球场，是校园全景中鲜明的地标。', note: '这里展示志义体育场的局部放大，聚焦跑道、球场与看台；不与另一处运动场混同。' },
-  { id: 'architecture', name: '建筑工程学院', number: '06', x: 31, y: 56, image: '/assets/landmarks-v0.1.2/architecture-entry.png', photos: [
-    { src: '/assets/landmarks-v0.1.2/architecture-entry.png', title: '建工学院入口', width: 830, height: 374 },
-    { src: '/assets/landmarks-v0.1.2/architecture.png', title: '建筑工程学院', width: 834, height: 374 },
+  { id: 'architecture', name: '建筑工程学院', number: '06', x: 31, y: 56, image: asset('/assets/landmarks-v0.1.2/architecture-entry.png'), photos: [
+    { src: asset('/assets/landmarks-v0.1.2/architecture-entry.png'), title: '建工学院入口', width: 830, height: 374 },
+    { src: asset('/assets/landmarks-v0.1.2/architecture.png'), title: '建筑工程学院', width: 834, height: 374 },
   ], description: '从圆形入口与空中连廊，到红砖楼体与通透玻璃，看看建工学院的两处建筑近景。', note: '两张图片均来自你提供的地标像素拼贴，已替换上一版不符实物的展示图。' },
 ]
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import FragmentArtwork from './FragmentArtwork'
 import type { Character } from './content'
 import './swan-mission.css'
+import { asset } from './asset-path'
 
 const passed = [
   ['你','拍到了！这一张连水面的波纹都留下来了。'],
@@ -60,9 +61,9 @@ export default function SwanMission({ character, completed, onComplete, onExit, 
   return <section className={`swan-mission ${phase==='game'?'':'swan-result'}`} aria-label="水系黑天鹅抓拍活动">
     <div className="swan-mission-head"><div><strong>校园水系 · 黑天鹅抓拍</strong><small>{phase==='game'?'轮廓重合时按空格或点击快门 · 五轮成功至少四次':`本次成功 ${score} / 5 次 · ${completed?'建筑碎片已收好':'水岸边的对话'}`}</small></div><button className="button button-primary" onClick={onExit}>返回水系 ↗</button></div>
     {reward&&<FragmentArtwork id="lake"/>}
-    {phase==='game'?<iframe key={attempt} ref={frame} src="/games/swan/index.html" title="黑天鹅三维抓拍小游戏" onLoad={() => frame.current?.contentWindow?.focus()}/>:<>
-      <div className="scene-actors water-actors"><div className="actor player-actor"><span className="actor-name">你 · 河大学生</span><img src={`/assets/characters/${character}.png`} alt="所选学生形象"/></div><div className="actor npc-actor"><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智"/></div></div>
-      <div className="dialogue-box" aria-live="polite"><div className="dialogue-portrait"><img src={`/assets/characters/${!reward&&line[0]==='你'?character:'zhuxiaozhi'}.png`} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{reward?'获得建筑碎片':line[0]}</h3><span>{!reward&&line[0]==='你'?'河大学生':'校园知识守护者'}</span><small>{reward?'已收好':`${index+1} / ${lines.length}`}</small></div>
+    {phase==='game'?<iframe key={attempt} ref={frame} src={asset("/games/swan/index.html")} title="黑天鹅三维抓拍小游戏" onLoad={() => frame.current?.contentWindow?.focus()}/>:<>
+      <div className="scene-actors water-actors"><div className="actor player-actor"><span className="actor-name">你 · 河大学生</span><img src={asset(`/assets/characters/${character}.png`)} alt="所选学生形象"/></div><div className="actor npc-actor"><img src={asset("/assets/characters/zhuxiaozhi.png")} alt="筑小智"/></div></div>
+      <div className="dialogue-box" aria-live="polite"><div className="dialogue-portrait"><img src={asset(`/assets/characters/${!reward&&line[0]==='你'?character:'zhuxiaozhi'}.png`)} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{reward?'获得建筑碎片':line[0]}</h3><span>{!reward&&line[0]==='你'?'河大学生':'校园知识守护者'}</span><small>{reward?'已收好':`${index+1} / ${lines.length}`}</small></div>
         <p>{reward?<>获得 <strong>建筑碎片 ×1</strong>，已收好。</>:line[1]}</p>
         <div className="dialogue-actions"><button disabled={!reward&&index===0} onClick={previous}>← 上一句</button>{reward?<><span><kbd>空格</kbd> 返回水系</span><button onClick={onExit}>收好碎片，返回水系 →</button></>:index<lines.length-1||phase==='passed'?<><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={advance}>继续对话 →</button></>:<><button onClick={retry}>再拍一次 ↺</button><button onClick={onExit}>{phase==='failed'?'先看看风景':'继续探索'} →</button></>}</div>
       </div></div>

@@ -5,6 +5,7 @@ import RouteGuide from './RouteGuide'
 import { type Character, type PlaceId } from './content'
 import { cameraAt, initialPlayer, initialDemo, stepRouteDemo, movePlayer, nearestInteraction, routeStops, WORLD, type RouteDemo, type Interaction, type PlayerState } from './world'
 import { renderGame, type GameImages } from './game-renderer'
+import { asset } from './asset-path'
 
 export default function ExploreGame({character,playerStore,paused,onInteract,onMap,completed,onRestart}:{onRestart:()=>void;completed:TaskProgress;character:Character;playerStore:MutableRefObject<PlayerState>;paused:boolean;onInteract:(id:PlaceId|'npc')=>void;onMap:()=>void}) {
   const canvas=useRef<HTMLCanvasElement>(null)
@@ -40,7 +41,7 @@ export default function ExploreGame({character,playerStore,paused,onInteract,onM
     const up=(event:KeyboardEvent)=>keys.current.delete(event.key.toLowerCase())
     window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',clear);document.addEventListener('visibilitychange',clear)
     const load=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=src})
-    Promise.all(['/assets/scenes/campus.png','/assets/scenes/campus-v0.1.1.png','/assets/sprites-v0.3.0/boy.png','/assets/sprites-v0.3.0/girl.png','/assets/characters/zhuxiaozhi.png'].map(load)).then(([campus,corrected,boy,girl,npc])=>{
+    Promise.all([asset('/assets/scenes/campus.png'),asset('/assets/scenes/campus-v0.1.1.png'),asset('/assets/sprites-v0.3.0/boy.png'),asset('/assets/sprites-v0.3.0/girl.png'),asset('/assets/characters/zhuxiaozhi.png')].map(load)).then(([campus,corrected,boy,girl,npc])=>{
       if(cancelled)return
       const images:GameImages={campus,corrected,boy,girl,npc}
       setReady(true);element.focus({preventScroll:true})

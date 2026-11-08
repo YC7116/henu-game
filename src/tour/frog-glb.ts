@@ -1,6 +1,7 @@
 // 极简 GLB 读取器：只支持静态网格（POSITION / NORMAL / 索引 / PBR baseColor）
 // 奶蛙模型由 Blender 导出，不含骨骼与动画，这里把它包成和程序化 rig 相同的接口。
 import T from '../three-vendor'
+import { asset } from '../asset-path'
 
 export type FrogRig = {
   root: any
@@ -174,7 +175,7 @@ export function buildFrogFromGLB(): FrogRig {
   const state = { loaded: false, baseY: 0 }
   const arms: { left?: any; right?: any } = {}
   const legs: { left?: any; right?: any } = {}
-  fetch('/assets/models/milk-frog.glb')
+  fetch(asset('/assets/models/milk-frog.glb'))
     .then((r) => r.arrayBuffer())
     .then((buf) => {
       const parsed = buildFromGLB(buf)

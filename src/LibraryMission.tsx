@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import FragmentArtwork from './FragmentArtwork'
 import type { Character } from './content'
 import './library-mission.css'
+import { asset } from './asset-path'
 
 const questions = [
   { title:'河南大学创建于哪一年？', options:['1902 年','1912 年','1922 年'], answer:1, hint:'再想想，校徽上藏着一个年份提示。', fact:'没错，是 1912 年。这个年份也写在河大的校徽上，下次见到可以留意一下。' },
@@ -55,8 +56,8 @@ export default function LibraryMission({character,completed,onComplete,onExit}:{
     {step==='scene'&&<button className="library-start button button-primary" onClick={()=>setStep(completed?'revisit':'opening-player')}>开始对话 →</button>}
     {step==='reward'&&review===null&&<FragmentArtwork id="library"/>}
     {step!=='scene'&&<>
-      <div className="scene-actors library-actors" aria-label="玩家与筑小智"><div className="actor player-actor"><span className="actor-name">你 · 河大学生</span><img src={`/assets/characters/${character}.png`} alt="你选择的学生形象"/></div><div className="actor npc-actor"><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智"/></div></div>
-      <div className="dialogue-box library-dialogue" aria-live="polite"><div className="dialogue-portrait"><img src={`/assets/characters/${speaker==='你'?character:'zhuxiaozhi'}.png`} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{speaker}</h3><span>{speaker==='你'?'河大学生':'校园知识守护者'}</span><small>{step==='question'?`${index+1} / 2`:'图书馆'}</small></div>
+      <div className="scene-actors library-actors" aria-label="玩家与筑小智"><div className="actor player-actor"><span className="actor-name">你 · 河大学生</span><img src={asset(`/assets/characters/${character}.png`)} alt="你选择的学生形象"/></div><div className="actor npc-actor"><img src={asset("/assets/characters/zhuxiaozhi.png")} alt="筑小智"/></div></div>
+      <div className="dialogue-box library-dialogue" aria-live="polite"><div className="dialogue-portrait"><img src={asset(`/assets/characters/${speaker==='你'?character:'zhuxiaozhi'}.png`)} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{speaker}</h3><span>{speaker==='你'?'河大学生':'校园知识守护者'}</span><small>{step==='question'?`${index+1} / 2`:'图书馆'}</small></div>
 <div className="dialogue-actions"><button disabled={review===0||(!seen.length)||(review===null&&!!historyText&&seen.length<2)} onClick={previous}>← 上一句</button>{review!==null&&<span>对话回看 · ← / →</span>}</div>
       {shownLine&&<><p>{shownLine.text}</p><div className="dialogue-actions"><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={forward}>继续对话 →</button></div></>}
       {review===null&&step==='question'&&<><p className="library-question">{index+1} / 2 · {q.title}</p><div className="library-options">{q.options.map((o,i)=><button key={o} onClick={()=>choose(i)}>{String.fromCharCode(65+i)} <span>{o}</span></button>)}</div>{hint&&<p className="library-hint" role="status">{hint}</p>}</>}

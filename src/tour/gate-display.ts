@@ -1,7 +1,8 @@
 import T from '../three-vendor'
 // @ts-ignore -- local Three.js r160 loader.
 import { GLTFLoader } from '../vendor/GLTFLoader.js'
-export const GATE_DISPLAY_URL='/gate-viewer/index.html'
+import { asset } from '../asset-path'
+export const GATE_DISPLAY_URL=asset('/gate-viewer/index.html')
 export const BUILD_STAGES=['铺设基座与庭院','立起门柱与墙体','安装木门与匾额','合拢飞檐与屋瓦']
 export function createGateDisplay(x:number,y:number,z:number){
  const root=new T.Group();root.position.set(x,y,z)
@@ -12,7 +13,7 @@ export function createGateDisplay(x:number,y:number,z:number){
  let normalized:any=null,stages:any[]=[],loadId=0
  const dispose=(o:any)=>o?.traverse((n:any)=>{if(n.isMesh){n.geometry?.dispose();for(const m of Array.isArray(n.material)?n.material:[n.material]){for(const k of ['map','normalMap','roughnessMap','metalnessMap'])m?.[k]?.dispose();m?.dispose()}}})
  const load=async()=>{const id=++loadId;status='loading';try{
-  const gltf=await new GLTFLoader().loadAsync('/assets/models/henu-south-gate-assembly.glb')
+  const gltf=await new GLTFLoader().loadAsync(asset('/assets/models/henu-south-gate-assembly.glb'))
   if(dead||id!==loadId){dispose(gltf.scene);return}
   const model=gltf.scene;const box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());const scale=2.6/size.x
   normalized=new T.Group();normalized.scale.setScalar(scale);normalized.position.set(-center.x*scale,.9-box.min.y*scale,-center.z*scale);normalized.add(model);root.add(normalized)

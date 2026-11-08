@@ -5,6 +5,7 @@ import { AwardPanel, CodePanel, DialoguePanel, FloorPanel, NotePanel } from './p
 import { renderRoom, type RoomArt } from './renderer'
 import type { Npc, PlayerState, RoomConfig, RoomEntrance, Vec } from './types'
 import './rooms.css'
+import { asset } from '../asset-path'
 
 export type RoomProgress = {
   /** 本房间的关键事件是否完成（202：开箱；303：答对题）。 */
@@ -225,9 +226,9 @@ export default function RoomScene({
       })
 
     Promise.all([
-      load('/assets/sprites-v0.3.0/boy.png'),
-      load('/assets/sprites-v0.3.0/girl.png'),
-      load('/assets/characters/zhuxiaozhi.png'),
+      load(asset('/assets/sprites-v0.3.0/boy.png')),
+      load(asset('/assets/sprites-v0.3.0/girl.png')),
+      load(asset('/assets/characters/zhuxiaozhi.png')),
     ])
       .then(([boy, girl, zhuxiaozhi]) => {
         if (cancelled) return

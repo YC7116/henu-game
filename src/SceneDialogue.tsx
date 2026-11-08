@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Character } from './content'
 import './scene-dialogue.css'
+import { asset } from './asset-path'
 export type SceneLine = readonly [string, string]
 /** 与校园初遇相同的双人立绘和逐句对话；仅在结束时执行场景动作。 */
 export default function SceneDialogue({character='boy',lines,title,onFinish,onCancel,finishLabel='继续探索',cancelLabel='稍后再来'}:{character?:Character;lines:readonly SceneLine[];title:string;onFinish:()=>void;onCancel?:()=>void;finishLabel?:string;cancelLabel?:string}){
@@ -23,7 +24,7 @@ export default function SceneDialogue({character='boy',lines,title,onFinish,onCa
     return()=>window.removeEventListener('keydown',key,true)
   },[index,last,onCancel,onFinish])
   return <section className="scene-dialogue-overlay" role="dialog" aria-modal="true" aria-label={title}>
-    <div className="scene-actors"><div className={`actor player-actor ${line[0]==='你'?'is-speaking':''}`}><span className="actor-name">你 · 河大学生</span><img src={`/assets/characters/${character}.png`} alt="所选学生形象"/></div><div className={`actor npc-actor ${line[0]!=='你'?'is-speaking':''}`}><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智"/></div></div>
-    <div className="dialogue-box" aria-live="polite"><div className="dialogue-portrait"><img src={`/assets/characters/${line[0]==='你'?character:'zhuxiaozhi'}.png`} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{line[0]}</h3><span>{line[0]==='你'?'河大学生':'校园知识守护者'}</span><small>{index+1} / {lines.length}</small></div><p>{line[1]}</p><div className="dialogue-actions"><button disabled={index===0} onClick={previous}>← 上一句</button>{last?<><span><kbd>空格</kbd> 结束对话</span>{onCancel&&<button onClick={onCancel}>{cancelLabel}</button>}<button onClick={onFinish}>{finishLabel} →</button></>:<><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={advance}>继续对话 →</button></>}</div></div></div>
+    <div className="scene-actors"><div className={`actor player-actor ${line[0]==='你'?'is-speaking':''}`}><span className="actor-name">你 · 河大学生</span><img src={asset(`/assets/characters/${character}.png`)} alt="所选学生形象"/></div><div className={`actor npc-actor ${line[0]!=='你'?'is-speaking':''}`}><img src={asset("/assets/characters/zhuxiaozhi.png")} alt="筑小智"/></div></div>
+    <div className="dialogue-box" aria-live="polite"><div className="dialogue-portrait"><img src={asset(`/assets/characters/${line[0]==='你'?character:'zhuxiaozhi'}.png`)} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{line[0]}</h3><span>{line[0]==='你'?'河大学生':'校园知识守护者'}</span><small>{index+1} / {lines.length}</small></div><p>{line[1]}</p><div className="dialogue-actions"><button disabled={index===0} onClick={previous}>← 上一句</button>{last?<><span><kbd>空格</kbd> 结束对话</span>{onCancel&&<button onClick={onCancel}>{cancelLabel}</button>}<button onClick={onFinish}>{finishLabel} →</button></>:<><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={advance}>继续对话 →</button></>}</div></div></div>
   </section>
 }

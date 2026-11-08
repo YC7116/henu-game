@@ -24,7 +24,7 @@ export const routeStops: { id: PlaceId; name: string; number: string; index: num
   { id:'gate',name:'西大门',number:'01',index:0 },
   { id:'library',name:'图书馆',number:'02',index:12 },
   { id:'teaching',name:'综合教学楼',number:'03',index:20 },
-  { id:'stadium',name:'志义体育场',number:'05',index:31 },
-  { id:'lake',name:'校园水系',number:'04',index:46 },
+  { id:'stadium',name:'志义体育场',number:'04',index:31 },
+  { id:'lake',name:'校园水系',number:'05',index:46 },
   { id:'architecture',name:'建筑工程学院',number:'06',index:56 },
 ]

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import FragmentArtwork from './FragmentArtwork'
 import type { Character } from './content'
 import './library-mission.css'
 
@@ -11,6 +12,9 @@ export default function LibraryMission({character,completed,onComplete,onExit}:{
   const [step,setStep]=useState<Step>('scene')
   const [index,setIndex]=useState(0)
   const [hint,setHint]=useState('')
+  const granted=useRef(completed)
+  const [seen,setSeen]=useState<{key:string;speaker:string;text:string}[]>([])
+  const [review,setReview]=useState<number|null>(null)
   const q=questions[index]
   const lines: Partial<Record<Step,{speaker:'你'|'筑小智';text:string;next:Step}>> = {
     'opening-player':{speaker:'你',text:'图书馆到了。这里能找到碎片吗？',next:'opening-npc'},
@@ -24,22 +28,41 @@ export default function LibraryMission({character,completed,onComplete,onExit}:{
     'finish-direction':{speaker:'筑小智',text:'观察得不错。把它收好，我们去综合教学楼找找下一块吧。',next:'reward'},
   }
   const line=lines[step]
-  const speaker=line?.speaker ?? '筑小智'
+  const historyText=line?.text??(step==='correct'?q.fact:undefined)
+  useEffect(()=>{if(historyText){const item={key:`${step}:${index}`,speaker:line?.speaker??'筑小智',text:historyText};setSeen(old=>old.at(-1)?.key===item.key?old:[...old,item])}},[step,index])
+  const shownLine=review===null?line:seen[review]
+  const speaker=shownLine?.speaker ?? '筑小智'
+  function previous(){const next=review===null?seen.length-(historyText?2:1):review-1;if(next>=0)setReview(next)}
+  function forward(){if(review!==null){const next=review+1;if(next<seen.length-(historyText?1:0))setReview(next);else setReview(null);return}if(line)advanceLine();else if(step==='correct')afterCorrect()}
+
   function choose(i:number){if(i===q.answer){setHint('');setStep('correct')}else setHint(q.hint)}
-  function advanceLine(){if(!line)return;if(step==='finish-npc')onComplete();setStep(line.next)}
+  function advanceLine(){if(!line)return;if(step==='finish-npc'&&!granted.current){granted.current=true;onComplete()};setStep(line.next)}
   function afterCorrect(){if(index===0){setIndex(1);setStep('bridge-player')}else setStep('finish-player')}
+  useEffect(()=>{
+    const key=(event:KeyboardEvent)=>{
+      if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||(event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]'))return
+      if(event.key==='ArrowLeft'){event.preventDefault();previous();return}
+      if(event.key==='ArrowRight'){event.preventDefault();forward();return}
+      if(![' ','e','E'].includes(event.key))return
+      if(review!==null||line||step==='correct'){event.preventDefault();forward()}else if(event.key===' '&&(step==='reward'||step==='revisit')){event.preventDefault();onExit()}
+    }
+    window.addEventListener('keydown',key)
+    return()=>window.removeEventListener('keydown',key)
+  },[step,index,review,seen])
   return <section className="library-mission" aria-label="图书馆互动任务">
     <div className="library-backdrop" role="img" aria-label="图书馆中庭像素场景"/>
     <div className="library-head"><span>图书馆 · 中庭</span><button onClick={onExit}>返回校园</button></div>
     {step==='scene'&&<button className="library-start button button-primary" onClick={()=>setStep(completed?'revisit':'opening-player')}>开始对话 →</button>}
+    {step==='reward'&&review===null&&<FragmentArtwork id="library"/>}
     {step!=='scene'&&<>
       <div className="scene-actors library-actors" aria-label="玩家与筑小智"><div className="actor player-actor"><span className="actor-name">你 · 河大学生</span><img src={`/assets/characters/${character}.png`} alt="你选择的学生形象"/></div><div className="actor npc-actor"><img src="/assets/characters/zhuxiaozhi.png" alt="筑小智"/></div></div>
       <div className="dialogue-box library-dialogue" aria-live="polite"><div className="dialogue-portrait"><img src={`/assets/characters/${speaker==='你'?character:'zhuxiaozhi'}.png`} alt=""/></div><div className="dialogue-copy"><div className="speaker-line"><h3>{speaker}</h3><span>{speaker==='你'?'河大学生':'校园知识守护者'}</span><small>{step==='question'?`${index+1} / 2`:'图书馆'}</small></div>
-      {line&&<><p>{line.text}</p><div className="dialogue-actions"><button onClick={advanceLine}>继续对话 →</button></div></>}
-      {step==='question'&&<><p className="library-question">{index+1} / 2 · {q.title}</p><div className="library-options">{q.options.map((o,i)=><button key={o} onClick={()=>choose(i)}>{String.fromCharCode(65+i)} <span>{o}</span></button>)}</div>{hint&&<p className="library-hint" role="status">{hint}</p>}</>}
-      {step==='correct'&&<><p>{q.fact}</p><div className="dialogue-actions"><button onClick={afterCorrect}>继续对话 →</button></div></>}
-      {step==='reward'&&<><p>获得 <strong>建筑碎片 ×1</strong><br/>下一站：综合教学楼</p><div className="dialogue-actions"><button onClick={onExit}>返回校园 →</button></div></>}
-      {step==='revisit'&&<><p>图书馆的碎片已经收好，接下来去综合教学楼看看吧。</p><div className="dialogue-actions"><button onClick={()=>{setIndex(0);setHint('');setStep('opening-player')}}>重温对话</button><button onClick={onExit}>返回校园 →</button></div></>}
+<div className="dialogue-actions"><button disabled={review===0||(!seen.length)||(review===null&&!!historyText&&seen.length<2)} onClick={previous}>← 上一句</button>{review!==null&&<span>对话回看 · ← / →</span>}</div>
+      {shownLine&&<><p>{shownLine.text}</p><div className="dialogue-actions"><span><kbd>E</kbd> / <kbd>空格</kbd> 继续</span><button onClick={forward}>继续对话 →</button></div></>}
+      {review===null&&step==='question'&&<><p className="library-question">{index+1} / 2 · {q.title}</p><div className="library-options">{q.options.map((o,i)=><button key={o} onClick={()=>choose(i)}>{String.fromCharCode(65+i)} <span>{o}</span></button>)}</div>{hint&&<p className="library-hint" role="status">{hint}</p>}</>}
+      {review===null&&step==='correct'&&<><p>{q.fact}</p><div className="dialogue-actions"><button onClick={afterCorrect}>继续对话 →</button></div></>}
+      {review===null&&step==='reward'&&<><p>获得 <strong>建筑碎片 ×1</strong><br/>下一站：综合教学楼</p><div className="dialogue-actions"><span><kbd>空格</kbd> 返回校园</span><button onClick={onExit}>返回校园 →</button></div></>}
+      {review===null&&step==='revisit'&&<><p>图书馆的碎片已经收好，接下来去综合教学楼看看吧。</p><div className="dialogue-actions"><button onClick={()=>{setIndex(0);setHint('');setStep('opening-player')}}>重温对话</button><button onClick={onExit}>返回校园 →</button></div></>}
     </div></div></>}
   </section>
 }

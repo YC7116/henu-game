@@ -32,3 +32,4 @@
 .activity-fullscreen{position:absolute;right:18px;bottom:18px;z-index:120;background:#f6f1e4ee;border:1px solid #a2ad8a;color:#39513e;padding:9px 12px;font-size:11px}
 .tour-boot{position:absolute;inset:0;display:grid;place-items:center;background:#f3f0e5;color:#45614b;font-size:13px}
 .game-shell:fullscreen .activity-host{width:100%;height:100%}
+.game-shell:fullscreen{min-height:0!important}

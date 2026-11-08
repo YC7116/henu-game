@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import T from '../three-vendor'
 import { createArt } from './art'
-import { createHall, BRIDGE_Y, floorY, FLOORS, type Hotspot } from './building'
+import { createHall, BRIDGE_Y, floorY, FLOORS, R606, type Hotspot } from './building'
 import { SITE_COORD_TEXT, SITE_FROM_GATE } from '../geo'
 import './tour.css'
+import SceneDialogue from '../SceneDialogue'
+import PhotoViewer from '../PhotoViewer'
+import { gateBefore, gateAfter, journeyEnding } from '../scene-dialogue-lines'
+import type { Character } from '../content'
+import { BUILD_STAGES, GATE_DISPLAY_URL } from './gate-display'
 
 /**
  * First-person interior walk-through for 建筑工程学院.
@@ -47,9 +52,9 @@ const PRESETS: Record<string, Pose> = {
   bridgeW: { x: 19.6, z: 7.8, yaw: Math.PI / 2, pitch: 0.0, feet: BRIDGE_Y },
   passN: { x: 19.6, z: -5.0, yaw: Math.PI, pitch: 0.0, feet: BRIDGE_Y },
   // 南楼六层 606 教室：门口 / 室内 / 大屏幕前
-  room606: { x: -50.8, z: 26.6, yaw: 0, pitch: 0.02, feet: floorY(6) },
-  inside606: { x: -48.2, z: 23.0, yaw: Math.PI / 2, pitch: 0.03, feet: floorY(6) },
-  screen606: { x: -52.4, z: 20.6, yaw: Math.PI / 2, pitch: 0.05, feet: floorY(6) },
+  room606: { x: R606.doorX, z: 26.6, yaw: 0, pitch: 0.02, feet: floorY(6) },
+  inside606: { x: R606.x0 + 7.8, z: 23.0, yaw: Math.PI / 2, pitch: 0.03, feet: floorY(6) },
+  screen606: { x: R606.x0 + 3.6, z: 20.6, yaw: Math.PI / 2, pitch: 0.05, feet: floorY(6) },
 }
 
 /** 截图用：?eye=44 把相机抬到 44 m 高，核对总平面时不用真的爬楼。 */
@@ -248,7 +253,8 @@ function MiniGame606({ onWin, onClose }: { onWin: () => void; onClose: () => voi
   </div>
 }
 
-export default function FirstPersonTour({ onClose, view }: { onClose: () => void; view?: string }) {
+export default function FirstPersonTour({ onClose, view, character='boy', onComplete }: { onClose: () => void; view?: string; character?: Character; onComplete?:()=>void }) {
+  const completedRef=useRef(onComplete);completedRef.current=onComplete
   const host = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState('')
@@ -272,11 +278,46 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
   const [nearAct, setNearAct] = useState({ door: false, screen: false })
   const [door606Open, setDoor606Open] = useState(false)
   const [game606, setGame606] = useState(false)
+  const [gatePhotoOpen,setGatePhotoOpen]=useState(false)
+  const [detailOpen,setDetailOpen]=useState(false)
+  const detailOpenRef=useRef(false)
+  const endingSeen=useRef(false)
+  const [endingOpen,setEndingOpen]=useState(false)
+  function closeDetail(){
+    setDetailOpen(false)
+    if(endingSeen.current)setEndingOpen(true)
+    else{endingSeen.current=true;setGateDialogue('ending')}
+  }
+  const closeDetailRef=useRef(closeDetail);closeDetailRef.current=closeDetail
+
+  useEffect(()=>{
+    if(!endingOpen||gatePhotoOpen)return
+    const key=(event:KeyboardEvent)=>{if(event.key===' '&&!event.repeat&&!event.ctrlKey&&!event.metaKey&&!event.altKey){event.preventDefault();event.stopImmediatePropagation();onClose()}}
+    window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true)
+  },[endingOpen,gatePhotoOpen,onClose])
+  const detailFrame=useRef<HTMLIFrameElement>(null)
+  const detailClose=useRef<HTMLButtonElement>(null)
+  const [gateDialogue,setGateDialogue]=useState<'before'|'after'|'ending'|null>(null)
+  const gateDialogueRef=useRef<boolean>(false);gateDialogueRef.current=!!gateDialogue||endingOpen||gatePhotoOpen
+  const previousAssemblyStatus=useRef('ready')
+  const [assemblyOpen,setAssemblyOpen]=useState(false)
+  const assemblyOpenRef=useRef(false)
+  const [assembly,setAssembly]=useState({status:'loading',progress:0,stage:0})
+  const [nearAssembly,setNearAssembly]=useState(false)
+  const assemblyNearRef=useRef(false)
+  const assemblyApi=useRef<{start:()=>void;retry:()=>void}>({start(){},retry(){}})
   const [fragments, setFragments] = useState(0)
   const gameOpenRef = useRef(false)
   const actRef = useRef({ door: false, screen: false })
   const doorOpenRef = useRef(false)
   useEffect(() => { gameOpenRef.current = game606 }, [game606])
+  useEffect(()=>{assemblyOpenRef.current=assemblyOpen},[assemblyOpen])
+  useEffect(()=>{
+    detailOpenRef.current=detailOpen
+    const receive=(event:MessageEvent)=>{if(event.origin===location.origin && event.source===detailFrame.current?.contentWindow && event.data?.type==='henu-gate-viewer-close')closeDetailRef.current()}
+    window.addEventListener('message',receive)
+    return()=>window.removeEventListener('message',receive)
+  },[detailOpen])
   const openGame = useCallback(() => setGame606(true), [])
   const closeGame = useCallback(() => setGame606(false), [])
   const winFragment = useCallback(() => setFragments(f => f + 1), [])
@@ -566,18 +607,19 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
         }
         // ---- 606 教室：交互门 + 大屏幕感应 ----
         {
-          cur = { x: -30, z: 26.6, feet: floorY(6) }
-          const toDoor = walker(cur, -50.8, 26.4, 0.14)
+          cur = { x: 28, z: 26.6, feet: floorY(6) }
+          const toDoor = walker(cur, R606.doorX, 26.4, 0.14)
           const doorNear = hall.door606Near(cur.x, cur.z, cur.feet)
-          const shutBlocked = hall.blockedAt(-50.8, 25.05, floorY(6))
+          const shutBlocked = hall.blockedAt(R606.doorX, 25.05, floorY(6))
           hall.door606Toggle()
           for (let k = 0; k < 150; k++) hall.tick(1 / 60)
-          const openPass = !hall.blockedAt(-50.8, 25.05, floorY(6))
-          const into = walker(cur, -50.8, 23.4, 0.14) && walker(cur, -52.8, 21.8, 0.14)
+          const openPass = !hall.blockedAt(R606.doorX, 25.05, floorY(6))
+          const into = walker(cur, R606.doorX, 23.4, 0.14) && walker(cur, R606.x0 + 3.2, 21.8, 0.14)
           const nearScreen = hall.screen606Near(cur.x, cur.z, cur.feet)
           out.push(`→606门 toDoor=${toDoor ? 'ok' : 'BLOCKED'} near=${doorNear ? 'ok' : 'MISS'}`
             + ` shutBlocks=${shutBlocked ? 'ok' : 'LEAK'} openPass=${openPass ? 'ok' : 'NO'}`
             + ` enter=${into ? 'ok' : 'BLOCKED'} screen=${nearScreen ? 'ok' : 'MISS'} zone=${hall.zone(cur.x, cur.z, cur.feet)}`)
+          out.push(`→606末端墙 ${hall.blockedAt(R606.x0,26.6,floorY(6))?'ok':'LEAK'} · 电梯至末端教室横向 ${(30-R606.doorX).toFixed(1)}m`)
           hall.door606Toggle() // 关门复位
           for (let k = 0; k < 150; k++) hall.tick(1 / 60)
         }
@@ -640,10 +682,14 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
     let walkPhase = 0
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if(gateDialogueRef.current)return
       if(event.ctrlKey||event.metaKey||event.altKey||(event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]'))return
       const key = event.key.toLowerCase()
       // 606 小游戏开着时：所有按键都归游戏自己管
+      if(detailOpenRef.current){if(key==='escape')closeDetailRef.current();return}
       if (gameOpenRef.current) return
+      if(assemblyOpenRef.current){if(key==='escape'){setAssemblyOpen(false);if(document.pointerLockElement)document.exitPointerLock()};return}
+      if((key==='e'||key==='f')&&!event.repeat&&assemblyNearRef.current){event.preventDefault();setAssemblyOpen(true);setGateDialogue('before');if(document.pointerLockElement)document.exitPointerLock();return}
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
         event.preventDefault()
         keys.add(key)
@@ -710,6 +756,7 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
     // 预览面板/iframe 里可能不允许 pointer lock，失败时不能把整个交互卡死，
     // 所以鼠标也允许按住拖动转头（不依赖锁定）。
     const onPointerDown = (event: PointerEvent) => {
+      if(assemblyOpenRef.current)return
       dragging = true
       lastPointer = { x: event.clientX, y: event.clientY }
       canvas.setPointerCapture?.(event.pointerId)
@@ -736,7 +783,7 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
       }
     }
     const onClick = () => {
-      if (isShot) return
+      if (isShot || assemblyOpenRef.current) return
       if (!document.pointerLockElement && !cardOpen.current) lockPointer()
     }
 
@@ -770,6 +817,9 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
     }
     api.current.callLift = (i: number, floor: number) => hall.sendLift(i, floor)
     api.current.toggleDoor606 = () => hall.door606Toggle()
+    assemblyApi.current={retry:()=>hall.gateDisplay.retry(),start:()=>{
+      keys.clear();speedNow=0;p.x=R606.x1-3;p.z=24.1;p.feet=floorY(6);p.yaw=0;p.pitch=-.36;hall.gateDisplay.start()
+    }}
     api.current.interact = () => {
       const target = promptRef.current
       if (target) {
@@ -778,6 +828,7 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
       }
     }
 
+    let wasInRoom606=false
     /* -------------------------------------------------------- walking --- */
 
     const tryAt = (nx: number, nz: number) => {
@@ -803,9 +854,10 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
       last = now
       smoothDt += (rawDt - smoothDt) * 0.25
       // 卡顿那几帧用平滑步长推进，画面上的位移更连续，不会突然窜一下。
+      if(detailOpenRef.current){raf=requestAnimationFrame(frame);return}
       const dt = rawDt > smoothDt * 1.8 ? smoothDt * 1.8 : rawDt
 
-      const frozen = (cardOpen.current || gameOpenRef.current) && !isShot
+      const frozen = (cardOpen.current || gameOpenRef.current || assemblyOpenRef.current) && !isShot
       const forward = Number(keys.has('w') || keys.has('arrowup')) - Number(keys.has('s') || keys.has('arrowdown'))
       const strafe = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'))
       const moving = !frozen && (forward !== 0 || strafe !== 0)
@@ -840,7 +892,7 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
 
       const walking = speedNow > 0.2
       const bob = walking ? Math.sin(walkPhase) * 0.018 : 0
-      const targetY = p.feet + EYE + bob
+      const targetY = p.feet + (assemblyOpenRef.current?3.0:EYE) + bob
       const carIdx = hall.liftIndex(p.x, p.z, p.feet)
       const riding = carIdx >= 0 && hall.insideLift(carIdx, p.x, p.z)
       camY += (targetY - camY) * Math.min(1, dt * (riding ? 26 : 12))
@@ -850,16 +902,17 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
       viewYaw += (p.yaw - viewYaw) * lookEase
       viewPitch += (p.pitch - viewPitch) * lookEase
 
-      camera.position.set(p.x, camY, p.z)
-      camera.rotation.set(viewPitch, viewYaw, Math.sin(walkPhase * 0.5) * (walking ? 0.0028 : 0))
+      camera.position.set(assemblyOpenRef.current?R606.x1-3:p.x, camY, assemblyOpenRef.current?24.1:p.z)
+      camera.rotation.set(assemblyOpenRef.current?-.36:viewPitch, assemblyOpenRef.current?0:viewYaw, Math.sin(walkPhase * 0.5) * (walking ? 0.0028 : 0))
 
       // 快速转身时视野轻微扩张（最多 3°），转身更有速度感、边缘也更有"拉"的感觉。
       const yawSpeed = Math.abs(viewYaw - prevYaw) / Math.max(dt, 0.001)
       prevYaw = viewYaw
       const wantedStretch = frozen ? 0 : Math.min(3, yawSpeed * 0.5)
       stretch += (wantedStretch - stretch) * (1 - Math.exp(-rawDt * 5))
-      if (Math.abs(camera.fov - (baseFov + stretch)) > 0.04) {
-        camera.fov = baseFov + stretch
+      const displayFov=assemblyOpenRef.current?50:baseFov
+      if (Math.abs(camera.fov - (displayFov + stretch)) > 0.04) {
+        camera.fov = displayFov + stretch
         camera.updateProjectionMatrix()
       }
 
@@ -890,7 +943,12 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
 
       if (now - uiClock > 120) {
         uiClock = now
-        setZone(hall.zone(p.x, p.z, p.feet))
+        const currentZone=hall.zone(p.x,p.z,p.feet)
+        setZone(currentZone)
+        const inRoom606=currentZone==='南楼 · 606 教室'
+        if(wasInRoom606&&!inRoom606){hall.gateDisplay.reset();setAssemblyOpen(false);setDetailOpen(false);setGateDialogue(null);setEndingOpen(false);setGatePhotoOpen(false)}
+        wasInRoom606=inRoom606
+        const assemblyNear=hall.gateDisplay.near(p.x,p.z,p.feet);assemblyNearRef.current=assemblyNear;setNearAssembly(assemblyNear);const gateState=hall.gateDisplay.state();setAssembly(gateState);if(previousAssemblyStatus.current==='building'&&gateState.status==='complete'){setGateDialogue('after');completedRef.current?.()};previousAssemblyStatus.current=gateState.status
         const li = hall.liftIndex(p.x, p.z, p.feet)
         // 606：门 / 大屏幕的感应区
         const nearDoor = typeof hall.door606Near === 'function' && hall.door606Near(p.x, p.z, p.feet)
@@ -914,7 +972,7 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
           }
         }
         // 机关优先：电梯厅里 / 606 门与大屏幕前，展签一律让位，E 永远先触发机关
-        if (li >= 0 || nearDoor || nearScreen) best = null
+        if (li >= 0 || nearDoor || nearScreen || assemblyNear) best = null
         if (best?.id !== promptRef.current?.id) {
           promptRef.current = best
           setPrompt(best)
@@ -1012,14 +1070,14 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
         ? <div id="tour-perf" className="tour-perf">测量中…</div>
         : null}
 
-      {prompt && !card && <button className="tour-prompt" onClick={() => api.current.interact()}>
+      {prompt && !card && !assemblyOpen && <button className="tour-prompt" onClick={() => api.current.interact()}>
         <kbd>E</kbd><span>{prompt.title}</span><small>{prompt.kicker.split(' · ')[1]}</small>
       </button>}
 
-      {nearAct.screen && !game606 && <button className="tour-prompt" onClick={openGame}>
+      {nearAct.screen && !game606 && !assemblyOpen && !nearAssembly && <button className="tour-prompt" onClick={openGame}>
         <kbd>E</kbd><span>启动大屏幕小游戏</span><small>606 · SCREEN</small>
       </button>}
-      {nearAct.door && !nearAct.screen && !game606 && <button className="tour-prompt" onClick={() => setDoor606Open(api.current.toggleDoor606())}>
+      {nearAct.door && !nearAct.screen && !game606 && !assemblyOpen && !nearAssembly && <button className="tour-prompt" onClick={() => setDoor606Open(api.current.toggleDoor606())}>
         <kbd>E</kbd><span>{door606Open ? '关闭 606 教室门' : '打开 606 教室门'}</span><small>606 · DOOR</small>
       </button>}
 
@@ -1099,6 +1157,15 @@ export default function FirstPersonTour({ onClose, view }: { onClose: () => void
         </div>
       </aside>}
 
+      {nearAssembly && !assemblyOpen && !game606 && <button className="tour-prompt" onClick={()=>{setAssemblyOpen(true);setGateDialogue('before');if(document.pointerLockElement)document.exitPointerLock()}}><kbd>E</kbd><span>建筑碎片展示台</span><small>606 · BUILD</small></button>}
+      {assemblyOpen && !gateDialogue && !endingOpen && <div className="gate-build-panel" role="dialog" aria-label="南大门搭建展示台"><span className="tour-kicker">606 · 建筑碎片的答案</span><h3>{assembly.status==='complete'?'南大门搭建展示台':'建筑碎片展示台'}</h3><p>{assembly.status==='loading'?'正在载入你的校门模型……':assembly.status==='error'?'模型加载失败，请重试。':assembly.status==='building'?BUILD_STAGES[assembly.stage]:assembly.status==='complete'?'熟悉的南大门，原来就藏在这些建筑碎片里。':'将建筑模块依次归位，看看它们能拼成什么。'}</p>
+      <progress max={1} value={assembly.progress} aria-label="南大门搭建进度"/>
+      <div className="gate-build-actions">{assembly.status==='error'?<button onClick={()=>assemblyApi.current.retry()}>重新载入</button>:<button disabled={assembly.status==='loading'||assembly.status==='building'} onClick={()=>assembly.status==='complete'?assemblyApi.current.start():setGateDialogue('before')}>{assembly.status==='complete'?'重看搭建动画':'开始搭建'}</button>}
+      {assembly.status==='complete'&&<button onClick={()=>{setDetailOpen(true);if(document.pointerLockElement)document.exitPointerLock()}}>查看3D环绕详细展示</button>}{assembly.status==='complete'&&<button onClick={()=>setGatePhotoOpen(true)}>查看完整图片</button>}{assembly.status==='complete'&&<button onClick={()=>{endingSeen.current=true;setGateDialogue('ending')}}>与筑小智道别</button>}<button onClick={()=>setAssemblyOpen(false)}>返回教室</button></div></div>}
+      {gateDialogue&&<SceneDialogue key={gateDialogue} character={character} lines={gateDialogue==='before'?gateBefore:gateDialogue==='after'?gateAfter:journeyEnding} title={gateDialogue==='before'?'606 · 搭建前对话':gateDialogue==='after'?'606 · 揭晓答案':'606 · 校园里见'} finishLabel={gateDialogue==='before'?'开始搭建':gateDialogue==='after'?'环绕查看南大门':'结束对话'} cancelLabel={gateDialogue==='before'?'先看看展示台':'留在展示台旁'} onCancel={gateDialogue==='ending'?undefined:()=>setGateDialogue(null)} onFinish={()=>{if(gateDialogue==='before'){assemblyApi.current.start()}else if(gateDialogue==='after'){setDetailOpen(true)}else{setEndingOpen(true)}setGateDialogue(null)}}/>}
+      {endingOpen&&<section className="journey-ending" role="dialog" aria-modal="true" aria-label="寻迹旅程结束"><div className="journey-ending-copy"><span>河大寻迹 · 金明秘境</span><h2>这次寻迹，暂告一段落。</h2><p>下次路过，记得看看身边的风景。</p><p>按空格返回校园</p><div><button onClick={()=>closeRef.current()}>返回校园 →</button><button onClick={()=>{setEndingOpen(false);setDetailOpen(true)}}>再看看南大门 ⛶</button><button onClick={()=>setGatePhotoOpen(true)}>查看完整图片</button></div></div></section>}
+      {gatePhotoOpen&&<PhotoViewer place={{id:'architecture',name:'南大门完整图片',number:'06',x:0,y:0,image:'/assets/rewards/fragments/south-gate-complete.png',description:'',note:'',photos:[{src:'/assets/rewards/fragments/south-gate-complete.png',title:'河南大学南大门 · 完整微缩景观',width:1392,height:1130}]}} index={0} onIndex={()=>{}} onClose={()=>setGatePhotoOpen(false)}/>}
+      {detailOpen&&<section className="gate-detail-overlay" role="dialog" aria-modal="true" aria-label="南大门3D环绕详细展示"><div className="gate-detail-head"><strong>南大门 · 3D环绕详细展示</strong><button ref={detailClose} onClick={closeDetail}>结束欣赏，返回606 ×</button></div><iframe ref={detailFrame} title="南大门环绕模型" src={GATE_DISPLAY_URL} onLoad={()=>detailClose.current?.focus({preventScroll:true})}/></section>}
       {game606 && <MiniGame606 onWin={winFragment} onClose={closeGame} />}
 
       {!locked && started && !card && <div className="tour-hint">点击画面锁定鼠标；若没反应，按住左键拖动也能转头</div>}

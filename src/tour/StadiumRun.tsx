@@ -4,6 +4,10 @@ import { createStadium, DIM } from './stadium'
 import { buildFrog } from './frog'
 import { buildFrogFromGLB } from './frog-glb'
 import './stadium.css'
+import SceneDialogue from '../SceneDialogue'
+import FragmentArtwork from '../FragmentArtwork'
+import { stadiumBefore, stadiumAfter } from '../scene-dialogue-lines'
+import type { Character } from '../content'
 
 /**
  * 志义体育场 · 100 m 直道决赛（6 人）
@@ -228,7 +232,14 @@ const PLAYER_COLORS = { shirt: '#2f6f9e', shorts: '#232d38', skin: '#e2b48f', ha
 const PLAYER_VMAX = 11.15
 const PLAYER_TAU = 1.55
 
-export default function StadiumRun({ onClose }: { onClose: () => void }) {
+export default function StadiumRun({ onClose, character='boy', onComplete, completed=false }: { onClose: () => void; character?: Character; onComplete?:()=>void; completed?:boolean }) {
+  const completedRef=useRef(onComplete);completedRef.current=onComplete
+  const [fragmentOpen,setFragmentOpen]=useState(false)
+  const [dialogue,setDialogue]=useState<'before'|'after'|null>(null)
+  const finishedRace=useRef(false)
+  const rewardClaimed=useRef(completed)
+  if(completed)rewardClaimed.current=true
+  const dialogueRef=useRef(false);dialogueRef.current=!!dialogue||fragmentOpen
   const host = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<Mode>('menu')
   const [sprintPhase, setSprintPhase] = useState<SprintPhase>('lineup')
@@ -244,7 +255,6 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
     best: boolean
     board: Array<{ name: string; time: number; isPlayer: boolean }>
     gap: number
-    fragments: number
   } | null>(null)
   const [view, setView] = useState<ViewMode>('tp')
   const [best, setBest] = useState<number | null>(() => {
@@ -255,6 +265,11 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
   const [ready, setReady] = useState(false)
   const [locked, setLocked] = useState(false)
 
+  useEffect(()=>{
+    if(!fragmentOpen)return
+    const key=(event:KeyboardEvent)=>{if(event.key===' '&&!event.repeat&&!event.ctrlKey&&!event.metaKey&&!event.altKey){event.preventDefault();event.stopImmediatePropagation();onClose()}}
+    window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true)
+  },[fragmentOpen,onClose])
   const styleRef = useRef<'max' | 'pixel'>(styleMode)
   styleRef.current = styleMode
   const viewRef = useRef<ViewMode>(view)
@@ -262,7 +277,21 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
   const charRef = useRef<CharId>(char)
   charRef.current = char
   const closeRef = useRef(onClose)
-  closeRef.current = onClose
+  closeRef.current = () => {
+    if(finishedRace.current&&!rewardClaimed.current){
+      if(document.pointerLockElement)document.exitPointerLock()
+      setDialogue('after')
+    }else onClose()
+  }
+  function receiveReward(){
+    if(!rewardClaimed.current){
+      rewardClaimed.current=true
+      try{localStorage.setItem('henu-stadium-fragments','1')}catch{/* In-session reward remains usable. */}
+      completedRef.current?.()
+    }
+    setDialogue(null)
+    setFragmentOpen(true)
+  }
   const apiRef = useRef<{
     startSprint: () => void
     startTour: () => void
@@ -515,6 +544,7 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if(dialogueRef.current)return
       if(e.ctrlKey||e.metaKey||e.altKey||(e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]'))return
       if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault()
       const isW = e.code === 'KeyW' || e.code === 'ArrowUp'
@@ -619,11 +649,9 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
       const isBest = !prev || playerTime < prev
       if (isBest) localStorage.setItem('henu-stadium-sprint-best', String(playerTime))
       setBest((b) => (isBest ? playerTime : b))
-      // 完赛奖励：一枚「志义体育场」建筑碎片，累计存在本机
-      const fragKey = 'henu-stadium-fragments'
-      const fragTotal = Number(localStorage.getItem(fragKey) || 0) + 1
-      localStorage.setItem(fragKey, String(fragTotal))
-      setResult({ time: playerTime, splits: [playerTime * 0.48, playerTime], rank, best: isBest, board, gap, fragments: fragTotal })
+      // 完赛只记录成绩；返回时与筑小智交谈，确认收下后才发碎片。
+      finishedRace.current=true
+      setResult({ time: playerTime, splits: [playerTime * 0.48, playerTime], rank, best: isBest, board, gap })
       setSprintPhase('finished')
       state.phase = 'finished'
       finishedOnce = true
@@ -647,7 +675,7 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
 
     function frame(now: number) {
       if (!alive) return
-      if(document.hidden){last=now;raf=requestAnimationFrame(frame);return}
+      if(document.hidden||dialogueRef.current){last=now;raf=requestAnimationFrame(frame);return}
       const dt = Math.min(0.1, Math.max(0.0005, (now - last) / 1000))
       last = now
       state.time2 += dt
@@ -995,7 +1023,7 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
         <>
           <div className="stadium-hud">
             <div className="stadium-hud-left">
-              <span className="stadium-kicker">LANDMARK 05 · ZHIYI STADIUM</span>
+              <span className="stadium-kicker">LANDMARK 04 · ZHIYI STADIUM</span>
               <strong>志义体育场</strong>
               <em>
                 {mode === 'sprint' ? '100 m 直道决赛 · 8 人' : mode === 'tour' ? '自由参观 · 第一 / 第三人称' : '八道环形跑道 · 百米直道 · 单侧罩棚看台'}
@@ -1128,7 +1156,7 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {mode === 'sprint' && sprintPhase === 'finished' && result && (
+          {mode === 'sprint' && sprintPhase === 'finished' && result && !dialogue && !fragmentOpen && (
             <div className="stadium-reward" role="dialog" aria-label="决赛成绩">
               <div className="stadium-reward-card">
                 <div className={`stadium-medal is-rank-${Math.min(4, result.rank)}`} aria-hidden="true">
@@ -1165,24 +1193,8 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
                     </li>
                   ))}
                 </ol>
-                <div className="stadium-fragment">
-                  <div className="stadium-fragment-piece">
-                    <img src="/assets/rewards/henu-gate-fragment.jpg" alt="建筑碎片 · 河南大学南大门" />
-                  </div>
-                  <div className="stadium-fragment-meta">
-                    <span className="stadium-fragment-kicker">BUILDING FRAGMENT</span>
-                    <strong>建筑碎片</strong>
-                    <span className="stadium-fragment-count">已收集 {Math.min(result.fragments, 4)} / 4</span>
-                  </div>
-                </div>
-                <p className="stadium-reward-note">
-                  你拿到了 <b>「金明杯 · 百米」完赛徽章</b>，以及一枚
-                  <b> 建筑碎片</b>（累计 {Math.min(result.fragments, 4)}/4，存在本机）。
-                  <br />
-                  碎片可以在「遇见筑小智」里拼回这所学校。
-                </p>
                 <div className="stadium-intro-actions">
-                  <button className="stadium-go" onClick={() => apiRef.current?.startSprint()}>
+                  <button className="stadium-go" onClick={() => setDialogue('before')}>
                     再跑一次
                   </button>
                   <button className="stadium-quiet" onClick={() => apiRef.current?.startTour()}>
@@ -1196,10 +1208,10 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {mode === 'menu' && (
+          {mode === 'menu' && !dialogue && (
             <div className="stadium-intro">
               <div className="stadium-intro-card">
-                <span className="stadium-kicker">LANDMARK 05 · 志义体育场</span>
+                <span className="stadium-kicker">LANDMARK 04 · 志义体育场</span>
                 <h2>金明杯 · 百米决赛</h2>
                 <p>红色塑胶跑道、绿色内场、单侧罩棚看台，依据卫星影像与实拍重建。</p>
                 <ul>
@@ -1230,7 +1242,7 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
                   <p className="stadium-charpick-desc">{currentChar.desc}</p>
                 </div>
                 <div className="stadium-intro-actions">
-                  <button className="stadium-go" onClick={() => apiRef.current?.startSprint()}>
+                  <button className="stadium-go" onClick={() => setDialogue('before')}>
                     进入决赛
                   </button>
                   <button className="stadium-quiet" onClick={() => apiRef.current?.startTour()}>
@@ -1245,6 +1257,8 @@ export default function StadiumRun({ onClose }: { onClose: () => void }) {
           )}
         </>
       )}
+      {fragmentOpen&&<section className="fragment-reward-overlay" role="dialog" aria-modal="true" aria-label="体育场建筑碎片奖励"><FragmentArtwork id="stadium"/><div className="fragment-reward-footer"><h2>获得建筑碎片</h2><p>按空格收好碎片并返回校园</p><p>筑小智把碎片交给了你。下一站，校园水系。</p><button onClick={onClose}>收好碎片，返回校园 →</button></div></section>}
+      {dialogue&&<SceneDialogue key={dialogue} character={character} lines={dialogue==='before'?stadiumBefore:stadiumAfter} title={dialogue==='before'?'体育场 · 赛前对话':'体育场 · 完赛后的奖励'} finishLabel={dialogue==='before'?'走上起跑线':'接过建筑碎片'} cancelLabel="再准备一下" onCancel={dialogue==='before'?()=>setDialogue(null):undefined} onFinish={dialogue==='before'?()=>{setDialogue(null);apiRef.current?.startSprint()}:receiveReward}/>}
     </div>
   )
 }

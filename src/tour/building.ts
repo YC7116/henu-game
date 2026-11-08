@@ -1,3 +1,4 @@
+import { createGateDisplay } from './gate-display'
 import T from '../three-vendor'
 import type { Art } from './art'
 import {
@@ -57,8 +58,8 @@ const LIFT_WALL_D = 7.36               // 电梯门墙所在进深（井道镶�
 const ST_D0 = 1.6, ST_D1 = 7.6         // 直跑梯段（沿 z，进深 1.6 → 7.6）
 const LINTEL = 2.46
 const CAR = { half: 0.78, top: 2.26 }
-/** 南楼六层西端的 606 教室（按照片布置：讲台 + 大屏幕，没有桌椅）。 */
-const R606 = { x0: -56, x1: -44, doorX: -50.8 }
+/** 南楼六层电梯厅附近的 606 教室（按照片布置：讲台 + 大屏幕，没有桌椅）。 */
+export const R606 = { x0: -8, x1: 4, doorX: -2.8 } // 游戏路线压缩：从电梯口到门口约 33 m，原约 81 m
 
 /**
  * 一栋楼的全部平面参数。z 一律用「进深 d」表达：d = (z - faceZ) * dir，
@@ -134,7 +135,7 @@ function inFloor1(x: number, z: number) {
 }
 
 /** 二至六层可站立面（每层同构；连廊通道全楼层保留，但只有五层有门洞可达）。
- *  南楼西端的 606 教室（x -56..-44，进深 0..9.45）整块登记为可站立。 */
+ *  南楼电梯厅附近的 606 教室（x -8..4，进深 0..9.45）整块登记为可站立。 */
 function inPlate(x: number, z: number) {
   for (const w of WINGS) {
     const d = w.depth(z)
@@ -647,11 +648,13 @@ export function createHall(art: Art, shadowSize = 2048) {
       }
     }
 
+    // 游戏化收短六楼南楼西段：606 仍在走廊末端，末端之后不再铺路或放教室门。
+    const corridorStart = n===6 && w.id==='S' ? R606.x0 : BLD_X0
     // ---- 行走面贴砖 + 矿棉板吊顶 ----
     const tiles: [number, number, number, number][] = [
       [GALL_X1, 33.6, 0, CORR_D0],             // 门厅 / 电梯厅 / 楼梯间（井道筒底下也有地面）
       [PASS_X0, PASS_X1, 0, CORR_D0],          // 连廊通道
-      [BLD_X0 + 0.1, 33.6, CORR_D0, CORR_D1],  // 走廊
+      [corridorStart + 0.1, 33.6, CORR_D0, CORR_D1],  // 走廊
     ]
     for (const [xa, xb, da, db] of tiles) {
       const [za, zb] = zSpan(w, da, db)
@@ -668,25 +671,28 @@ export function createHall(art: Art, shadowSize = 2048) {
     if (n === 2) holes.push([w.fx[0] + 0.12, y, w.fx[1] - 0.12, y + 2.7]) // 楼梯平台 → 二层
     if (n === 5) holes.push([PASS_X0, y, PASS_X1, y + 2.7])             // 连廊通道
     if (n === 6 && w.id === 'S') holes.push([R606.doorX - 1.3, y, R606.doorX + 1.3, y + 2.5]) // 606 教室门
-    wallX(w, BLD_X0, 33.6, 9.45, y, c, holes, MAT.white, 0.3)
+    wallX(w, corridorStart, 33.6, 9.45, y, c, holes, MAT.white, 0.3)
     // ---- 走廊 · 背侧的墙 + 办公室门 ----
-    wallX(w, BLD_X0, 33.6, 12.75, y, c, [], MAT.white, 0.3)
+    wallX(w, corridorStart, 33.6, 12.75, y, c, [], MAT.white, 0.3)
     for (let x = -50.8; x <= 28.4; x += 7.2) {
+      if(n===6 && w.id==='S' && x<R606.x1+1)continue
       if (n === 5 && Math.abs(x - 21.2) < 1.0) continue  // 五层让开连廊通道
       doorUnit(w, x, 12.75, false, y)
     }
     for (const x of [-50.8, -43.6, -36.4, -29.2, -22]) {
-      if (n === 6 && w.id === 'S' && Math.abs(x - R606.doorX) < 1.4) continue // 606 的真门在这里
+      if (n === 6 && w.id === 'S' && x<R606.x1+1) continue // 606 的真门在这里
       doorUnit(w, x, 9.45, true, y)
     }
-    if (n >= 2) for (const x of [-14.8, -7.6, -0.4]) doorUnit(w, x, 9.45, true, y)
+    if (n >= 2) for (const x of [-14.8, -7.6, -0.4]) { if(n===6 && w.id==='S' && x<R606.x1+1)continue; doorUnit(w, x, 9.45, true, y) }
+
+    if(n===6 && w.id==='S') wallZ(w, corridorStart, CORR_D0-.2, CORR_D1+.3, y, c, [], MAT.white) // 走廊尽头，606 是最后一间
 
     // ---- 门厅两侧隔墙（都留 2 m 宽门洞）----
     wallZ(w, 5.6, 0, HALL_D, y, c, n === 1 ? [[2.0, y, 4.4, y + 2.5]] : [], MAT.white)
     wallZ(w, 12.8, 0, HALL_D, y, c, [[2.0, y, 4.4, y + 2.5]], MAT.white)
     wallZ(w, 26.4, 0, HALL_D, y, c, [[2.2, y, 4.2, y + 2.4]], MAT.white)
     if (n === 1) wallZ(w, GALL_X0, 0, HALL_D, y, c, [], MAT.white) // 陈列厅西端墙
-    if (n === 6 && w.id === 'S') wallZ(w, R606.x1, 0, 9.45, y, c, [], MAT.white) // 606 教室东隔墙
+    if (n === 6 && w.id === 'S') { wallZ(w, R606.x0, 0, 9.45, y, c, [], MAT.white); wallZ(w, R606.x1, 0, 9.45, y, c, [], MAT.white) } // 606 教室东隔墙
 
     // ---- 电梯门墙：横在电梯厅里（井道镶嵌在墙后，没有独立房间）----
     wallX(w, 26.4, 33.6, LIFT_WALL_D, y, c,
@@ -842,12 +848,12 @@ export function createHall(art: Art, shadowSize = 2048) {
     panel(9.0, 3.0, x1 - 0.16, y + 1.55, w.zAt(4.72), -Math.PI / 2)
     panel(9.0, 3.0, x0 + 0.17, y + 1.55, w.zAt(4.72), Math.PI / 2)
     // 红色中国结挂饰（门脸墙三只）
-    for (const kx of [-52.5, -49.5, -46.5]) {
+    for (const kx of [x0 + 3.5, x0 + 6.5, x0 + 9.5]) {
       box(0.34, 0.5, 0.03, MAT.redLacquer, kx, y + 2.42, w.zAt(0.66), false, false)
       box(0.1, 0.62, 0.03, MAT.redLacquer, kx, y + 2.02, w.zAt(0.66), false, false)
     }
     // 门脸墙上两台壁挂电视（黑框 + 深色屏）
-    for (const tx of [-51, -47]) {
+    for (const tx of [x0 + 5, x0 + 9]) {
       box(1.5, 0.9, 0.06, MAT.dark, tx, y + 2.1, w.zAt(0.7), false, false)
       box(1.34, 0.74, 0.02, new T.MeshStandardMaterial({ color: '#101418', roughness: 0.2, emissive: '#1c2a38', emissiveIntensity: 0.5 }),
         tx, y + 2.1, w.zAt(0.735), false, false)
@@ -868,9 +874,9 @@ export function createHall(art: Art, shadowSize = 2048) {
     box(0.05, 1.32, 2.6, MAT.whiteGloss, x1 - 0.2, y + 1.75, w.zAt(2.6), false, false)
     box(0.07, 0.06, 2.68, MAT.steel2, x1 - 0.2, y + 2.44, w.zAt(2.6), false, false)
     // 吸顶灯 + 室内点光
-    for (const lx2 of [-53, -49.5, -46]) box(1.5, 0.05, 0.34, MAT.glow, lx2, c - 0.05, w.zAt(4.72), false, false)
+    for (const lx2 of [x0 + 3, x0 + 6.5, x0 + 10]) box(1.5, 0.05, 0.34, MAT.glow, lx2, c - 0.05, w.zAt(4.72), false, false)
     const roomLight = new T.PointLight('#fff2dc', 1.25, 16, 2)
-    roomLight.position.set(-50, y + 2.6, w.zAt(4.72))
+    roomLight.position.set(x0 + 6, y + 2.6, w.zAt(4.72))
     root.add(roomLight)
 
     // 交互门：走廊前墙（z=Z606）上的实木门，铰链在西侧，往教室里开
@@ -888,6 +894,9 @@ export function createHall(art: Art, shadowSize = 2048) {
     door606Hinge = hinge
     door606Col = doorCol
   }
+
+  const gateDisplay=createGateDisplay(R606.x1-3,y6,WINGS[1].zAt(4.8));root.add(gateDisplay.root)
+  solid(R606.x1-4.6,R606.x1-1.4,WINGS[1].zAt(4.8)-1.3,WINGS[1].zAt(4.8)+1.3,y6,y6+.88)
 
   /* ------------------------------------------------------- 电梯系统 --- */
   // 门与轿厢是一个顺序状态机：idle → closing → moving → opening → idle。
@@ -1163,8 +1172,8 @@ export function createHall(art: Art, shadowSize = 2048) {
       lines: ['五层连廊，正对两栋楼的大门轴线，从圆形柱廊的鼓座顶上跨过，南北向连起两栋楼。', '两侧通高玻璃、白色混凝土桥身；从南楼五层门厅出来就是廊口。'],
     },
     {
-      id: 'room606', title: '606 教室', kicker: '16 · ROOM 606', x: -50, z: 21.6, y: floorY(6), radius: 4.5,
-      lines: ['南楼六层最西端的机房教室：浅木饰面墙、成排的大屏电视、红色中国结。', '讲台前的大屏幕里藏着一个小游戏——按 E 开始，赢了能拿到一块「建筑碎片」。'],
+      id: 'room606', title: '606 教室', kicker: '16 · ROOM 606', x: R606.x0 + 6, z: 21.6, y: floorY(6), radius: 4.5,
+      lines: ['南楼六层短走廊尽头的最后一间机房教室：浅木饰面墙、成排的大屏电视、红色中国结。', '讲台前的大屏幕里藏着一个小游戏——按 E 开始，赢了能拿到一块「建筑碎片」。'],
     },
     {
       id: 'stairN', title: '北楼楼梯', kicker: '14 · STAIR', x: 9.6, z: -3.6, y: 0, radius: 3.4,
@@ -1229,6 +1238,7 @@ export function createHall(art: Art, shadowSize = 2048) {
 
   let t = 0
   function tick(dt: number) {
+    gateDisplay.tick(dt)
     t += dt
     // 606 交互门：往教室里开，开过 1/5 以后碰撞体塌掉让人通过
     if (door606Hinge && door606Col) {
@@ -1287,12 +1297,14 @@ export function createHall(art: Art, shadowSize = 2048) {
   }
 
   function dispose() {
+    gateDisplay.dispose()
     for (const d of disposables) if (d && typeof d.dispose === 'function') d.dispose()
     root.traverse((o: any) => { if (o.geometry && o.geometry.dispose) o.geometry.dispose() })
   }
 
   return {
     root,
+    gateDisplay,
     hotspots,
     colliders,
     surfaceAt,

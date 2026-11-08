@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import CampusArtwork from './CampusArtwork'
+import type { TaskProgress } from './task-progress'
 import RouteGuide from './RouteGuide'
 import { type Character, type PlaceId } from './content'
 import { cameraAt, initialPlayer, initialDemo, stepRouteDemo, movePlayer, nearestInteraction, routeStops, WORLD, type RouteDemo, type Interaction, type PlayerState } from './world'
 import { renderGame, type GameImages } from './game-renderer'
 
-export default function ExploreGame({character,playerStore,paused,onInteract,onMap}:{character:Character;playerStore:MutableRefObject<PlayerState>;paused:boolean;onInteract:(id:PlaceId|'npc')=>void;onMap:()=>void}) {
+export default function ExploreGame({character,playerStore,paused,onInteract,onMap,completed,onRestart}:{onRestart:()=>void;completed:TaskProgress;character:Character;playerStore:MutableRefObject<PlayerState>;paused:boolean;onInteract:(id:PlaceId|'npc')=>void;onMap:()=>void}) {
   const canvas=useRef<HTMLCanvasElement>(null)
   const keys=useRef(new Set<string>())
   const interact=useRef(onInteract)
@@ -68,17 +69,18 @@ export default function ExploreGame({character,playerStore,paused,onInteract,onM
   },[character,playerStore])
   function reset(){playerStore.current=initialPlayer();demo.current=null;setDemonstrating(false);keys.current.clear();canvas.current?.focus({preventScroll:true})}
   function startDemo(){reset();demo.current=initialDemo();setDemonstrating(true)}
-  const destination=routeStops[position.visited]
+  const destination=routeStops.find(stop=>!completed[stop.id])
+  const completedCount=routeStops.filter(stop=>completed[stop.id]).length
   return <section className="explore-game" aria-label="校园步行路线试玩">
     <canvas ref={canvas} className="explore-canvas" tabIndex={0} aria-label="WASD或方向键移动，靠近金色交互点后按E或空格，M查看校园全景"/>
     {!ready&&!failed&&<div className="game-loading" role="status">正在展开校园……</div>}
     {failed&&<div className="game-loading" role="alert">图片加载失败。<button onClick={()=>window.location.reload()}>重新载入</button></div>}
-    <div className="explore-help"><span>{destination?`下一站 · ${destination.name}`:'已走完全程 · 建筑工程学院'}</span><small>{demonstrating?'正在沿路演示 · 方向键可随时接管':'WASD / 方向键沿路移动 · E / 空格交互'}</small><div className="walk-progress" aria-label={`已到达${position.visited}处地标，共6处`}>{routeStops.map((stop,i)=><i key={stop.id} className={i<position.visited?'visited':i===position.visited?'next':''} title={stop.name}>{stop.number}</i>)}</div></div>
-    <div className="route-actions"><button disabled={!ready||paused} onClick={demonstrating?()=>{demo.current=null;setDemonstrating(false)}:startDemo}>{demonstrating?'暂停演示，自己走':'从西门演示全程'}</button><button aria-pressed={showGuide} onClick={()=>{guide.current=!guide.current;setShowGuide(guide.current)}}>{showGuide?'隐藏路线':'显示路线'}</button></div>
+    <div className="explore-help"><span>{destination?`下一任务 · ${destination.name}`:'校园任务已完成'}</span><small>{demonstrating?'正在沿路演示 · 方向键可随时接管':'WASD / 方向键沿路移动 · E / 空格交互'}</small><small>本轮任务已完成 {completedCount} / 6</small><div className="walk-progress" aria-label={`已完成${completedCount}项任务，共6项`}>{routeStops.map(stop=><i key={stop.id} className={completed[stop.id]?'visited':stop.id===destination?.id?'next':''} title={`${stop.name} · ${completed[stop.id]?'已完成':'待完成'}`} >{stop.number}</i>)}</div></div>
+    <div className="route-actions"><button disabled={!ready||paused} onClick={demonstrating?()=>{demo.current=null;setDemonstrating(false)}:startDemo}>{demonstrating?'暂停演示，自己走':'从西门演示全程'}</button><button aria-pressed={showGuide} onClick={()=>{guide.current=!guide.current;setShowGuide(guide.current)}}>{showGuide?'隐藏路线':'显示路线'}</button><button onClick={onRestart}>重新开始旅程</button></div>
     <button className="explore-minimap" onClick={onMap} aria-label="查看校园全景与当前位置"><CampusArtwork/><RouteGuide/><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><circle cx={position.x/WORLD.width*100} cy={position.y/WORLD.height*100} r="1.5"/></svg><span>校园全景 · M</span></button>
-    {nearby&&!paused&&<button className="interaction-prompt" onClick={()=>interact.current(nearby.id)}><kbd>E</kbd><span>{nearby.id==='npc'?'与筑小智交谈':nearby.id==='library'?'进入图书馆':`查看${nearby.title}`}</span><small>或按空格</small></button>}
+    {nearby&&!paused&&<button className="interaction-prompt" onClick={()=>interact.current(nearby.id)}><kbd>E</kbd><span>{nearby.id==='npc'?'与筑小智交谈':`查看${nearby.title}`}</span><small>或按空格</small></button>}
     {!nearby&&!paused&&ready&&<div className="explore-tip">{demonstrating?'沿路行走中 · 每处地标稍作停留，可按 E 查看':'沿虚线走到下一站，也可点击“从西门演示全程”'}</div>}
-    <button className="reset-walk" disabled={paused} onClick={reset}>回到西门</button>
+    <button className="reset-walk" disabled={paused} onClick={reset} title="只返回西门位置，保留本轮任务进度">回到西门（保留进度）</button>
     <div className="touch-controls" aria-label="屏幕方向控制">{[['arrowup','↑'],['arrowleft','←'],['arrowdown','↓'],['arrowright','→']].map(([key,label])=><button key={key} aria-label={`向${label}移动`} onPointerDown={e=>{e.preventDefault();demo.current=null;setDemonstrating(false);e.currentTarget.setPointerCapture(e.pointerId);keys.current.add(key)}} onPointerUp={()=>keys.current.delete(key)} onPointerCancel={()=>keys.current.delete(key)} onLostPointerCapture={()=>keys.current.delete(key)}>{label}</button>)}</div>
   </section>
 }

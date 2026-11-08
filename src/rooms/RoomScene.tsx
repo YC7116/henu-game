@@ -430,6 +430,7 @@ export default function RoomScene({
       {panel === 'npc' && cfg.npc && (
         <div className="room-modal">
           <DialoguePanel
+            character={character}
             npc={cfg.npc}
             solved={!!progress.flags.quizPassed || (progress.done && !!cfg.box)}
             onSolved={solveQuiz}

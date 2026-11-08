@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { LockBox, Npc } from './types'
+import SceneDialogue from '../SceneDialogue'
+import FragmentArtwork from '../FragmentArtwork'
+import type { Character } from '../content'
 
 
 /** 楼梯口：选一层走。 */
@@ -132,12 +135,14 @@ export function CodePanel({
 
 /** NPC 对话：逐句推进，最后可以接一个小问答。 */
 export function DialoguePanel({
+  character='boy',
   npc,
   solved,
   onSolved,
   onClose,
 }: {
   npc: Npc
+  character?: Character
   solved: boolean
   onSolved: () => void
   onClose: () => void
@@ -146,6 +151,7 @@ export function DialoguePanel({
   const [phase, setPhase] = useState<'line' | 'quiz' | 'done'>('line')
   const [entry, setEntry] = useState('')
   const [wrong, setWrong] = useState(false)
+  const [reviewing,setReviewing]=useState(false)
 
   useEffect(() => {
     if (solved) setPhase('done')
@@ -180,8 +186,20 @@ export function DialoguePanel({
     }
   }
 
+  useEffect(()=>{
+    if(npc.name==='筑小智')return
+    const key=(event:KeyboardEvent)=>{
+      if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||(event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]'))return
+      if(event.key==='ArrowLeft'){event.preventDefault();if(phase!=='line'&&!reviewing){setIndex(npc.lines.length-1);setReviewing(true)}else setIndex(i=>Math.max(0,i-1))}
+      if((phase==='line'||reviewing)&&(['ArrowRight','e','E',' '].includes(event.key))){event.preventDefault();if(reviewing){if(index<npc.lines.length-1)setIndex(i=>i+1);else setReviewing(false)}else next()}
+      if(phase==='done'&&!reviewing&&event.key===' '){event.preventDefault();onClose()}
+    }
+    window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)
+  },[phase,index,reviewing,npc,onClose])
+  if(npc.name==='筑小智')return <SceneDialogue character={character} title="综合教学楼 · 筑小智" lines={npc.lines.map(line=>['筑小智',line.text] as const)} finishLabel="继续探索教学楼" onFinish={onClose}/>
   return (
     <div className="room-panel room-panel-wide npc-panel" role="dialog" aria-label={npc.name}>
+      {phase!=='line'&&!reviewing&&<button onClick={()=>{setIndex(npc.lines.length-1);setReviewing(true)}}>← 上一句</button>}
       <header className="rp-head">
         <div className="npc-head">
           <h3>{npc.name}</h3>
@@ -192,9 +210,9 @@ export function DialoguePanel({
         </button>
       </header>
 
-      {phase === 'line' && <p className="npc-line">{line.text}</p>}
+      {(phase === 'line'||reviewing) && <><p className="npc-line">{line.text}</p><button disabled={index===0} onClick={()=>setIndex(i=>Math.max(0,i-1))}>← 上一句</button></>}
 
-      {phase === 'quiz' && quiz && (
+      {!reviewing&&phase === 'quiz' && quiz && (
         <>
           <p className="npc-line">{quiz.prompt}</p>
           <p className="rp-question">{quiz.question}</p>
@@ -218,7 +236,7 @@ export function DialoguePanel({
         </>
       )}
 
-      {phase === 'done' && (
+      {!reviewing&&phase === 'done' && (
         <>
           <p className="npc-line">{solved && quiz ? quiz.ok : '（老师点了点头，又低头去改作业。）'}</p>
           <button className="rp-primary" onClick={onClose}>
@@ -227,8 +245,8 @@ export function DialoguePanel({
         </>
       )}
 
-      {phase === 'line' && (
-        <button className="rp-primary" onClick={next}>
+      {(phase === 'line'||reviewing) && (
+        <button className="rp-primary" onClick={()=>{if(reviewing){if(index<npc.lines.length-1)setIndex(i=>i+1);else setReviewing(false)}else next()}}>
           {index + 1 < npc.lines.length ? '继续' : quiz ? '回答' : '结束对话'}
         </button>
       )}
@@ -245,10 +263,13 @@ export function AwardPanel({
   text: string
   onClose: () => void
 }) {
+  useEffect(()=>{const key=(event:KeyboardEvent)=>{if(event.key===' '&&!event.repeat&&!event.ctrlKey&&!event.metaKey&&!event.altKey){event.preventDefault();event.stopImmediatePropagation();onClose()}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true)},[onClose])
   return (
     <div className="room-panel room-panel-core" role="dialog" aria-label={name}>
       <span className="core-eyebrow">ACQUIRED · 建筑碎片</span>
+      <FragmentArtwork id="teaching" inline/>
       <h3>{name}</h3>
+      <p>按空格带着碎片离开</p>
       <p className="rp-text">{text}</p>
       <button className="rp-primary" onClick={onClose}>
         带着碎片离开
